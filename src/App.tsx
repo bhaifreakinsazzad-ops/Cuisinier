@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SplashScreen } from '@/components/customer/SplashScreen';
 import { HomeHero } from '@/components/customer/HomeHero';
 import { BottomNav } from '@/components/customer/BottomNav';
+import { ElevenLabsAgentWidget } from '@/components/customer/ElevenLabsAgentWidget';
 import { PWAInstallPrompt, OfflineBanner } from '@/components/pwa/PWAInstallPrompt';
 import { bootstrapData } from '@/data/repository';
 import { getValidatedAdminSession } from '@/lib/adminAuth';
@@ -109,6 +110,7 @@ function AppContent() {
       </main>
 
       {!isAdminRoute && !showSplash && <BottomNav />}
+      {!isAdminRoute && <ElevenLabsAgentWidget enabled={!showSplash} />}
       <PWAInstallPrompt />
     </>
   );

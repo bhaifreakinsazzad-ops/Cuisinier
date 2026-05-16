@@ -120,4 +120,10 @@ export const analytics = {
   installClick(payload: Record<string, unknown>) {
     trackEvent('InstallCTAclick', payload);
   },
+  elevenLabsAgentLoaded(payload: Record<string, unknown>) {
+    trackEvent('ElevenLabsAgentLoaded', payload);
+  },
+  elevenLabsAgentLoadFailed(payload: Record<string, unknown>) {
+    trackEvent('ElevenLabsAgentLoadFailed', payload);
+  },
 };

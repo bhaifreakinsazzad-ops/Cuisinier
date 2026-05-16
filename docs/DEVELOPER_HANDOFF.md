@@ -79,6 +79,18 @@ Recommended hardening:
 - `/install` explains manual install steps
 - Standalone mode badge appears when launched as an installed app
 
+## ElevenLabs Widget
+
+- Customer-only widget component: [src/components/customer/ElevenLabsAgentWidget.tsx](/F:/HQ/Codex/Cuisinier/Cuisinier_github_push/src/components/customer/ElevenLabsAgentWidget.tsx)
+- Custom element: `<elevenlabs-convai>`
+- Agent ID: `agent_6801krp4gs21fm49n6jdxv19s0qb`
+- Script URL: `https://unpkg.com/@elevenlabs/convai-widget-embed`
+- Visible on customer routes only: `/`, `/menu`, `/cart`, `/checkout`, `/track`, `/order/:orderId`, `/support`, `/install`
+- Excluded from `/admin` and all admin subroutes
+- The script loads asynchronously and only once; if ElevenLabs is blocked or unavailable, the rest of the app still works normally
+- No private API key is required or stored
+- Do not add the widget script to the service worker precache
+
 ## Performance
 
 - Public and admin screens are lazy-loaded

@@ -67,6 +67,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   // For static assets: cache-first
+  if (request.destination === 'script' && url.origin !== self.location.origin) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   if (
     request.destination === 'image' ||
     request.destination === 'style' ||
