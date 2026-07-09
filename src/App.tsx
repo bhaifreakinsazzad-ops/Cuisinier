@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/customer/BottomNav';
 import { ElevenLabsAgentWidget } from '@/components/customer/ElevenLabsAgentWidget';
 import { PWAInstallPrompt, OfflineBanner } from '@/components/pwa/PWAInstallPrompt';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { CartFlyLayer } from '@/components/ui/CartFlyLayer';
 import { bootstrapData } from '@/data/repository';
 import { verifyAdminSession } from '@/lib/adminAuth';
 import { initAnalytics, trackPageView } from '@/lib/analytics';
@@ -191,6 +192,7 @@ function AppContent() {
       {!isAdminRoute && !showSplash && <BottomNav />}
       {!isAdminRoute && <ElevenLabsAgentWidget enabled={!showSplash} />}
       <PWAInstallPrompt />
+      <CartFlyLayer />
     </>
   );
 }

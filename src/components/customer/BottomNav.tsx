@@ -1,10 +1,19 @@
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, Sparkles, UtensilsCrossed, ShoppingCart, MapPin } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
+import { CART_BUMP_EVENT } from '@/lib/cartFx';
 
 export function BottomNav() {
   const { count } = useCart();
+  const [bump, setBump] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setBump((current) => current + 1);
+    window.addEventListener(CART_BUMP_EVENT, handler);
+    return () => window.removeEventListener(CART_BUMP_EVENT, handler);
+  }, []);
 
   const navItems = [
     { to: '/', icon: Home, label: 'Home' },
@@ -38,14 +47,30 @@ export function BottomNav() {
             >
               {({ isActive }) => (
                 <>
-                  <div className="relative">
+                  <motion.div
+                    className="relative"
+                    // key-driven remount plays the bounce exactly once per real bump
+                    // event; a scalar initial->animate (not a keyframe array) avoids
+                    // Framer Motion replaying it on unrelated re-renders (e.g. route
+                    // changes), since scalar targets bail out once already at rest.
+                    key={item.to === '/cart' ? bump : 'static'}
+                    initial={item.to === '/cart' && bump > 0 ? { scale: 1.45 } : false}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 12 }}
+                  >
                     <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
                     {item.badge ? (
-                      <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 bg-orange-500 text-black text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      <motion.span
+                        key={item.badge}
+                        initial={{ scale: 1.4 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                        className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 bg-orange-500 text-black text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-[0_0_8px_rgba(255,122,0,0.6)]"
+                      >
                         {item.badge}
-                      </span>
+                      </motion.span>
                     ) : null}
-                  </div>
+                  </motion.div>
                   <span className="text-[10px] font-medium">{item.label}</span>
                   {isActive && (
                     <motion.div

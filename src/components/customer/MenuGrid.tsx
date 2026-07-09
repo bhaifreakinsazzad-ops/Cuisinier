@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { GlowBadge } from '@/components/ui/GlowBadge';
 import { analytics } from '@/lib/analytics';
 import { formatCurrency } from '@/lib/utils';
+import { triggerCartFx } from '@/lib/cartFx';
 import { ItemDetailModal } from './ItemDetailModal';
 
 const CATEGORIES: Category[] = ['All', 'Shawarma', 'Burger', 'Pizza', 'Pasta', 'Fries & Snacks', 'Combos', 'Drinks'];
@@ -91,10 +92,11 @@ export function MenuGrid() {
 
   const availableCount = filtered.filter((item) => item.available).length;
 
-  const handleQuickAdd = (item: MenuItem) => {
+  const handleQuickAdd = (item: MenuItem, originEl: HTMLElement | null) => {
     if (!item.available) return;
 
     addToCart({ menuItem: item, quantity: 1, addons: [], note: '' });
+    triggerCartFx(originEl, item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️');
     analytics.addToCart({
       currency: 'BDT',
       content_ids: [item.id],
@@ -227,6 +229,8 @@ export function MenuGrid() {
                 key={item.id}
                 delay={index * 0.04}
                 hover={item.available}
+                tilt={item.available}
+                holo={item.featured || item.midnightPick}
                 onClick={item.available ? () => handleOpenItem(item) : undefined}
                 className={!item.available ? 'opacity-75' : ''}
               >
@@ -279,17 +283,18 @@ export function MenuGrid() {
                     >
                       Customize
                     </button>
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.8 }}
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleQuickAdd(item);
+                        handleQuickAdd(item, event.currentTarget);
                       }}
                       disabled={!item.available}
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 transition-colors hover:bg-orange-600 hover:shadow-[0_0_16px_rgba(255,122,0,0.55)] disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label={`Quick add ${item.name}`}
                     >
                       <Plus size={16} className="text-black" />
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
               </GlassCard>

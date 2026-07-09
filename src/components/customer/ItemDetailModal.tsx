@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Minus, Plus, ShoppingCart, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Check, Minus, Plus, ShoppingCart, X } from 'lucide-react';
 import { addToCart } from '@/data/storage';
 import { GlowBadge } from '@/components/ui/GlowBadge';
 import { CATEGORY_EMOJI } from '@/types';
 import { analytics } from '@/lib/analytics';
 import { formatCurrency } from '@/lib/utils';
+import { triggerCartFx } from '@/lib/cartFx';
 import type { CartAddon, MenuItem } from '@/types';
 
 interface ItemDetailModalProps {
@@ -76,7 +77,7 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
   const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
   const itemTotal = (item.price + addonsTotal) * quantity;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (originEl: HTMLElement | null) => {
     if (!item.available) return;
 
     addToCart({
@@ -85,6 +86,7 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
       addons: selectedAddons,
       note: note.trim(),
     });
+    triggerCartFx(originEl, item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️');
     analytics.addToCart({
       currency: 'BDT',
       content_ids: [item.id],
@@ -108,18 +110,19 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[70] flex items-end justify-center"
+      className="fixed inset-0 z-[70] flex items-end justify-center perspective-1200"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
+        initial={{ y: '100%', rotateX: 10, opacity: 0.4 }}
+        animate={{ y: 0, rotateX: 0, opacity: 1 }}
+        exit={{ y: '100%', rotateX: 10, opacity: 0.4 }}
         transition={{ type: 'spring', damping: 28, stiffness: 350 }}
         onClick={(event) => event.stopPropagation()}
-        className="relative max-h-[90vh] w-full max-w-lg overflow-hidden rounded-t-3xl border-t border-white/10 bg-[#111]"
+        style={{ transformOrigin: 'bottom center' }}
+        className="relative max-h-[90vh] w-full max-w-lg overflow-hidden rounded-t-3xl border-t border-orange-500/20 bg-[#111] shadow-[0_-20px_60px_rgba(255,122,0,0.12)]"
       >
         <button
           onClick={onClose}
@@ -159,21 +162,31 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
                 {ADDONS.map((addon) => {
                   const selected = selectedAddons.some((entry) => entry.name === addon.name);
                   return (
-                    <button
+                    <motion.button
                       key={addon.name}
+                      whileTap={{ scale: 0.96 }}
                       onClick={() => toggleAddon(addon)}
                       disabled={!item.available}
-                      className={`flex w-full items-center justify-between rounded-xl border p-3 transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                      className={`flex w-full items-center justify-between rounded-xl border p-3 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                         selected
-                          ? 'border-orange-500/40 bg-orange-500/15'
+                          ? 'border-orange-500/40 bg-orange-500/15 shadow-[0_0_16px_rgba(255,122,0,0.15)]'
                           : 'border-white/10 bg-white/5 hover:bg-white/10'
                       }`}
                     >
-                      <span className={`text-sm ${selected ? 'text-orange-400' : 'text-white/80'}`}>{addon.name}</span>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${
+                            selected ? 'border-orange-500 bg-orange-500' : 'border-white/20 bg-transparent'
+                          }`}
+                        >
+                          {selected && <Check size={12} className="text-black" strokeWidth={3} />}
+                        </span>
+                        <span className={`text-sm ${selected ? 'text-orange-400' : 'text-white/80'}`}>{addon.name}</span>
+                      </span>
                       <span className={`text-sm font-medium ${selected ? 'text-orange-400' : 'text-white/50'}`}>
                         +{formatCurrency(addon.price)}
                       </span>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -201,28 +214,41 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
             <div className="mt-6 flex items-center justify-between">
               <p className="text-sm font-semibold text-white">Quantity</p>
               <div className="flex items-center gap-3">
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.85 }}
                   onClick={() => setQuantity((current) => Math.max(1, current - 1))}
                   disabled={!item.available}
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-40"
                 >
                   <Minus size={16} />
-                </button>
-                <span className="w-8 text-center text-lg font-bold text-white">{quantity}</span>
-                <button
+                </motion.button>
+                <AnimatePresence mode="popLayout">
+                  <motion.span
+                    key={quantity}
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -10, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="inline-block w-8 text-center text-lg font-bold text-white"
+                  >
+                    {quantity}
+                  </motion.span>
+                </AnimatePresence>
+                <motion.button
+                  whileTap={{ scale: 0.85 }}
                   onClick={() => setQuantity((current) => current + 1)}
                   disabled={!item.available}
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-40"
                 >
                   <Plus size={16} />
-                </button>
+                </motion.button>
               </div>
             </div>
 
             {/* Add to cart */}
             <motion.button
               whileTap={{ scale: 0.97 }}
-              onClick={handleAddToCart}
+              onClick={(event) => handleAddToCart(event.currentTarget)}
               disabled={!item.available}
               className={`mt-6 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold transition-all ${
                 added
@@ -235,9 +261,25 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
               ) : (
                 <>
                   <ShoppingCart size={18} />
-                  {item.available
-                    ? `Add to Cart — ${formatCurrency(itemTotal)}`
-                    : 'Currently unavailable'}
+                  {item.available ? (
+                    <span className="flex items-baseline gap-1">
+                      Add to Cart —
+                      <AnimatePresence mode="popLayout">
+                        <motion.span
+                          key={itemTotal}
+                          initial={{ y: 8, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: -8, opacity: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className="inline-block"
+                        >
+                          {formatCurrency(itemTotal)}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
+                  ) : (
+                    'Currently unavailable'
+                  )}
                 </>
               )}
             </motion.button>

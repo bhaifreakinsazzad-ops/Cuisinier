@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Minus, NotebookPen, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clearOrderNote, getOrderNote, saveOrderNote } from '@/data/storage';
@@ -28,16 +28,30 @@ export function CartPage() {
   if (cart.length === 0) {
     return (
       <div className="relative flex min-h-[100dvh] flex-col items-center justify-center bg-[#080808] px-5">
+        <div className="absolute inset-0 holo-grid opacity-30 [mask-image:radial-gradient(ellipse_at_center,black_0%,transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,122,0,0.05)_0%,transparent_70%)]" />
         <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="relative z-10 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5">
+          <motion.div
+            className="relative mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          >
             <ShoppingCart size={32} className="text-white/30" />
-          </div>
+            <motion.div
+              className="absolute inset-0 rounded-full border border-orange-500/20"
+              animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0, 0.4] }}
+              transition={{ duration: 2.4, repeat: Infinity }}
+            />
+          </motion.div>
           <h2 className="text-xl font-bold text-white">Your cart is empty</h2>
           <p className="mt-2 text-sm text-white/40">Your next midnight mission starts from the menu.</p>
-          <button onClick={() => navigate('/menu')} className="mt-6 rounded-xl bg-orange-500 px-6 py-3 font-bold text-black transition-colors hover:bg-orange-600">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate('/menu')}
+            className="mt-6 rounded-xl bg-orange-500 px-6 py-3 font-bold text-black transition-colors hover:bg-orange-600"
+          >
             Browse Menu
-          </button>
+          </motion.button>
         </motion.div>
       </div>
     );
@@ -60,44 +74,81 @@ export function CartPage() {
         </div>
 
         <div className="space-y-3">
-          {cart.map((cartItem, index) => {
-            const addonsTotal = cartItem.addons.reduce((sum, addon) => sum + addon.price, 0);
-            const lineTotal = (cartItem.menuItem.price + addonsTotal) * cartItem.quantity;
+          <AnimatePresence initial={false}>
+            {cart.map((cartItem, index) => {
+              const addonsTotal = cartItem.addons.reduce((sum, addon) => sum + addon.price, 0);
+              const lineTotal = (cartItem.menuItem.price + addonsTotal) * cartItem.quantity;
+              // Stable identity matching storage.ts's addToCart merge rule (id + addons + note),
+              // not array index — so removing one item doesn't shift every other item's key
+              // and misdirect the exit animation onto the wrong card.
+              const stableKey = `${cartItem.menuItem.id}::${cartItem.addons.map((a) => a.name).sort().join(',')}::${cartItem.note}`;
 
-            return (
-              <GlassCard key={`${cartItem.menuItem.id}-${index}`} delay={index * 0.05}>
-                <div className="flex gap-3">
-                  <img
-                    src={cartItem.menuItem.image}
-                    alt={cartItem.menuItem.name}
-                    className="h-16 w-16 flex-shrink-0 rounded-xl border border-white/10 object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between">
-                      <h3 className="truncate pr-2 text-sm font-semibold text-white">{cartItem.menuItem.name}</h3>
-                      <button onClick={() => remove(index)} className="flex-shrink-0 text-red-400/50 transition-colors hover:text-red-400">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                    {cartItem.addons.length > 0 && <p className="mt-0.5 text-xs text-white/40">+ {cartItem.addons.map((addon) => addon.name).join(', ')}</p>}
-                    {cartItem.note && <p className="mt-0.5 text-[11px] italic text-white/30">&quot;{cartItem.note}&quot;</p>}
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => updateQuantity(index, cartItem.quantity - 1)} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20">
-                          <Minus size={14} />
-                        </button>
-                        <span className="w-6 text-center text-sm font-semibold text-white">{cartItem.quantity}</span>
-                        <button onClick={() => updateQuantity(index, cartItem.quantity + 1)} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20">
-                          <Plus size={14} />
-                        </button>
+              return (
+                <motion.div
+                  key={stableKey}
+                  layout
+                  exit={{ opacity: 0, x: -80, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <GlassCard delay={index * 0.05} hover tilt>
+                    <div className="flex gap-3">
+                      <img
+                        src={cartItem.menuItem.image}
+                        alt={cartItem.menuItem.name}
+                        className="h-16 w-16 flex-shrink-0 rounded-xl border border-white/10 object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between">
+                          <h3 className="truncate pr-2 text-sm font-semibold text-white">{cartItem.menuItem.name}</h3>
+                          <motion.button
+                            whileTap={{ scale: 0.8 }}
+                            onClick={() => remove(index)}
+                            className="flex-shrink-0 text-red-400/50 transition-colors hover:text-red-400"
+                            aria-label={`Remove ${cartItem.menuItem.name}`}
+                          >
+                            <Trash2 size={14} />
+                          </motion.button>
+                        </div>
+                        {cartItem.addons.length > 0 && <p className="mt-0.5 text-xs text-white/40">+ {cartItem.addons.map((addon) => addon.name).join(', ')}</p>}
+                        {cartItem.note && <p className="mt-0.5 text-[11px] italic text-white/30">&quot;{cartItem.note}&quot;</p>}
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <motion.button
+                              whileTap={{ scale: 0.85 }}
+                              onClick={() => updateQuantity(index, cartItem.quantity - 1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                            >
+                              <Minus size={14} />
+                            </motion.button>
+                            <AnimatePresence mode="popLayout">
+                              <motion.span
+                                key={cartItem.quantity}
+                                initial={{ y: 8, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -8, opacity: 0 }}
+                                transition={{ duration: 0.15 }}
+                                className="inline-block w-6 text-center text-sm font-semibold text-white"
+                              >
+                                {cartItem.quantity}
+                              </motion.span>
+                            </AnimatePresence>
+                            <motion.button
+                              whileTap={{ scale: 0.85 }}
+                              onClick={() => updateQuantity(index, cartItem.quantity + 1)}
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                            >
+                              <Plus size={14} />
+                            </motion.button>
+                          </div>
+                          <span className="text-sm font-bold text-orange-400">{formatCurrency(lineTotal)}</span>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold text-orange-400">{formatCurrency(lineTotal)}</span>
                     </div>
-                  </div>
-                </div>
-              </GlassCard>
-            );
-          })}
+                  </GlassCard>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
 
         <div className="mt-4">
@@ -125,14 +176,26 @@ export function CartPage() {
           </div>
           <div className="flex justify-between border-t border-white/10 pt-2 text-base font-bold">
             <span className="text-white">Total</span>
-            <span className="text-lg text-orange-400">{formatCurrency(totals.total)}</span>
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={totals.total}
+                initial={{ y: 8, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -8, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="inline-block text-lg text-orange-400"
+              >
+                {formatCurrency(totals.total)}
+              </motion.span>
+            </AnimatePresence>
           </div>
         </div>
 
         <motion.button
+          whileHover={{ boxShadow: '0 0 45px rgba(255,122,0,0.5)' }}
           whileTap={{ scale: 0.97 }}
           onClick={handleCheckout}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(255,122,0,0.3)] transition-all hover:bg-orange-600"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(255,122,0,0.3)] transition-colors hover:bg-orange-600"
         >
           Proceed to Checkout
           <ArrowRight size={18} />

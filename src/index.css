@@ -113,3 +113,149 @@
     background-clip: text;
   }
 }
+
+/* ============================================================
+   Holographic 3D design system
+   ============================================================ */
+
+@layer utilities {
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .perspective-1200 {
+    perspective: 1200px;
+  }
+
+  /* Holographic conic-gradient rotating border ring, sits behind a card */
+  .holo-ring {
+    position: absolute;
+    inset: -1.5px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--holo-angle, 0deg),
+      rgba(255, 122, 0, 0) 0%,
+      rgba(255, 122, 0, 0.9) 12%,
+      rgba(255, 179, 71, 0.6) 20%,
+      rgba(255, 122, 0, 0) 32%,
+      rgba(255, 122, 0, 0) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    animation: holo-spin 3.2s linear infinite;
+    /* Paused until hovered — a rotating conic-gradient repaints every frame
+       regardless of opacity, so idle cards must not run it in the background. */
+    animation-play-state: paused;
+  }
+
+  .group\/holo:hover .holo-ring {
+    opacity: 1;
+    animation-play-state: running;
+  }
+
+  /* Diagonal holographic sheen sweep, sits on top of a card */
+  .holo-sheen {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      115deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.08) 36%,
+      rgba(255, 179, 71, 0.16) 45%,
+      rgba(255, 255, 255, 0.08) 54%,
+      transparent 70%
+    );
+    background-size: 250% 250%;
+    background-position: 120% 120%;
+    opacity: 0;
+    transition: opacity 0.3s ease, background-position 0.9s ease;
+    pointer-events: none;
+  }
+
+  .group\/holo:hover .holo-sheen {
+    opacity: 1;
+    background-position: -20% -20%;
+  }
+
+  /* Holographic HUD grid backdrop */
+  .holo-grid {
+    background-image:
+      linear-gradient(rgba(255, 122, 0, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 122, 0, 0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Skeleton shimmer for loading placeholders */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-sweep 1.6s ease-in-out infinite;
+  }
+
+  /* Radial glare that follows pointer position, used with useTilt3D */
+  .tilt-glare {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at var(--glare-x, 50%) var(--glare-y, 50%),
+      rgba(255, 200, 140, 0.22),
+      transparent 55%
+    );
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+
+  .group\/holo:hover .tilt-glare {
+    opacity: 1;
+  }
+
+  .text-holo {
+    background: linear-gradient(90deg, #ff7a00, #ffd580, #ff7a00, #ffb347);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: holo-text-flow 4s linear infinite;
+  }
+}
+
+@keyframes holo-spin {
+  to {
+    --holo-angle: 360deg;
+  }
+}
+
+@property --holo-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes shimmer-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes holo-text-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+@keyframes radar-sweep {
+  to { transform: rotate(360deg); }
+}

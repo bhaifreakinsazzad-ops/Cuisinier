@@ -9,6 +9,7 @@ import type { HungerLevel, MenuItem, Mood, PeopleCount } from '@/types';
 import { CATEGORY_EMOJI } from '@/types';
 import { analytics } from '@/lib/analytics';
 import { formatCurrency } from '@/lib/utils';
+import { triggerCartFx } from '@/lib/cartFx';
 import { ItemDetailModal } from './ItemDetailModal';
 
 export function CravingSelector() {
@@ -53,7 +54,7 @@ export function CravingSelector() {
     { value: 'group', label: 'Group', desc: 'Squad hunger', emoji: '🧑‍🤝‍🧑' },
   ];
 
-  const recommendedItems = useMemo<MenuItem[]>(() => {
+  const recommendedItems = useMemo<Array<{ item: MenuItem; matchPercent: number }>>(() => {
     if (!mood) return [];
     const allItems = items.filter((item) => item.available);
 
@@ -93,8 +94,13 @@ export function CravingSelector() {
       })
       .sort((left, right) => right.score - left.score);
 
+    const withMatch = (entries: MenuItem[]) =>
+      entries.map((item, index) => ({ item, matchPercent: Math.max(96 - index * 7, 62) }));
+
     const matches = scored.filter((entry) => entry.score > 0).slice(0, 6).map((entry) => entry.item);
-    return matches.length > 0 ? matches : allItems.filter((item) => item.featured).slice(0, 6);
+    return matches.length > 0
+      ? withMatch(matches)
+      : withMatch(allItems.filter((item) => item.featured).slice(0, 6));
   }, [hunger, items, mood, people]);
 
   const handlePeopleSelect = (value: PeopleCount) => {
@@ -110,8 +116,9 @@ export function CravingSelector() {
     setStep(1);
   };
 
-  const handleQuickAdd = (item: MenuItem) => {
+  const handleQuickAdd = (item: MenuItem, originEl: HTMLElement | null) => {
     addToCart({ menuItem: item, quantity: 1, addons: [], note: '' });
+    triggerCartFx(originEl, item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️');
     analytics.addToCart({
       currency: 'BDT',
       content_ids: [item.id],
@@ -156,7 +163,7 @@ export function CravingSelector() {
               <p className="mb-4 text-sm font-medium text-white/70">Step 1 - What&apos;s your mood?</p>
               <div className="grid gap-3">
                 {moods.map((entry, index) => (
-                  <GlassCard key={entry.value} delay={index * 0.05} hover onClick={() => { setMood(entry.value); setStep(2); }}>
+                  <GlassCard key={entry.value} delay={index * 0.05} hover tilt onClick={() => { setMood(entry.value); setStep(2); }}>
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/15">
                         <entry.icon size={20} className="text-orange-400" />
@@ -178,7 +185,7 @@ export function CravingSelector() {
               <p className="mb-4 text-sm font-medium text-white/70">Step 2 - How hungry?</p>
               <div className="grid gap-3">
                 {hungerLevels.map((entry, index) => (
-                  <GlassCard key={entry.value} delay={index * 0.05} hover onClick={() => { setHunger(entry.value); setStep(3); }}>
+                  <GlassCard key={entry.value} delay={index * 0.05} hover tilt onClick={() => { setHunger(entry.value); setStep(3); }}>
                     <div className="flex items-center gap-3">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${entry.value === 'light' ? 'bg-green-500/15' : entry.value === 'medium' ? 'bg-orange-500/15' : 'bg-red-500/15'}`}>
                         <span className="text-lg">{entry.emoji}</span>
@@ -204,7 +211,7 @@ export function CravingSelector() {
               <p className="mb-4 text-sm font-medium text-white/70">Step 3 - How many people?</p>
               <div className="grid gap-3">
                 {peopleCounts.map((entry, index) => (
-                  <GlassCard key={entry.value} delay={index * 0.05} hover onClick={() => handlePeopleSelect(entry.value)}>
+                  <GlassCard key={entry.value} delay={index * 0.05} hover tilt onClick={() => handlePeopleSelect(entry.value)}>
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
                         <span className="text-lg">{entry.emoji}</span>
@@ -226,23 +233,85 @@ export function CravingSelector() {
           )}
 
           {step === 'scan' && (
-            <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-20">
-              <motion.div
-                className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-orange-500/30"
-                animate={{ scale: [1, 1.08, 1], rotate: 360 }}
-                transition={{ scale: { duration: 1.5, repeat: Infinity }, rotate: { duration: 4, repeat: Infinity, ease: 'linear' } }}
-              >
-                <Zap size={40} className="text-orange-500" />
+            <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-14">
+              {/* Holographic radar HUD */}
+              <div className="perspective-1200">
                 <motion.div
-                  className="absolute inset-0 rounded-full border border-orange-500/20"
-                  animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-              </motion.div>
-              <motion.p animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }} className="mt-8 text-sm font-medium text-orange-400">
-                AI scanning your craving profile...
+                  className="relative flex h-56 w-56 items-center justify-center rounded-full holo-grid"
+                  initial={{ rotateX: 35, opacity: 0 }}
+                  animate={{ rotateX: 35, opacity: 1 }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  {/* Outer holographic conic ring */}
+                  <motion.div
+                    className="absolute inset-0 rounded-full border border-orange-500/25"
+                    style={{
+                      background:
+                        'conic-gradient(from 0deg, transparent 0%, rgba(255,122,0,0.35) 15%, transparent 30%, transparent 100%)',
+                    }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}
+                  />
+                  {/* Middle ring, counter-rotating */}
+                  <motion.div
+                    className="absolute inset-6 rounded-full border border-orange-400/20"
+                    animate={{ rotate: -360, scale: [1, 1.04, 1] }}
+                    transition={{ rotate: { duration: 4, repeat: Infinity, ease: 'linear' }, scale: { duration: 2, repeat: Infinity } }}
+                  />
+                  {/* Pulse rings */}
+                  <motion.div
+                    className="absolute inset-10 rounded-full border border-orange-500/20"
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ duration: 2.2, repeat: Infinity }}
+                  />
+                  {/* Core */}
+                  <motion.div
+                    className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/15 shadow-[0_0_40px_rgba(255,122,0,0.4)]"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                  >
+                    <Zap size={30} className="text-orange-400" />
+                  </motion.div>
+                </motion.div>
+              </div>
+
+              <motion.p
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.4, repeat: Infinity }}
+                className="mt-8 text-sm font-semibold tracking-wide text-orange-400"
+              >
+                AI SCANNING CRAVING PROFILE
               </motion.p>
-              <p className="mt-2 text-xs text-white/30">Mood: {mood} • Hunger: {hunger} • People: {people}</p>
+
+              {/* Animated HUD readout */}
+              <div className="mt-4 w-full max-w-[240px] space-y-1.5 font-mono text-[11px]">
+                {[
+                  { label: 'MOOD', value: mood ?? '—' },
+                  { label: 'HUNGER', value: hunger ?? '—' },
+                  { label: 'PEOPLE', value: people ?? '—' },
+                ].map((row, index) => (
+                  <motion.div
+                    key={row.label}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.25 }}
+                    className="flex items-center justify-between rounded-md border border-orange-500/15 bg-orange-500/5 px-2.5 py-1"
+                  >
+                    <span className="text-white/40">{row.label}</span>
+                    <span className="text-orange-300">{row.value.toString().replace(/_/g, ' ').toUpperCase()}</span>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Progress bar synced to the 2.2s scan window */}
+              <div className="mt-4 h-1 w-full max-w-[240px] overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-orange-600 via-orange-400 to-orange-500"
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 2.1, ease: 'easeInOut' }}
+                />
+              </div>
             </motion.div>
           )}
 
@@ -258,14 +327,21 @@ export function CravingSelector() {
 
               <p className="mb-3 text-sm font-medium text-white/70">Recommended for you:</p>
               <div className="grid gap-3">
-                {recommendedItems.map((item, index) => (
-                  <GlassCard key={item.id} delay={index * 0.08}>
+                {recommendedItems.map(({ item, matchPercent }, index) => (
+                  <GlassCard key={item.id} delay={index * 0.08} hover tilt holo={index === 0}>
                     <div className="flex items-center gap-3">
                       <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-3xl">
                         {item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️'}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-white">{item.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-white">{item.name}</p>
+                          {index === 0 && (
+                            <span className="flex-shrink-0 rounded-full bg-orange-500/20 px-1.5 py-0.5 text-[9px] font-bold text-orange-400">
+                              TOP MATCH
+                            </span>
+                          )}
+                        </div>
                         <p className="truncate text-xs text-white/40">{item.description}</p>
                         <div className="mt-1 flex flex-wrap gap-1">
                           {item.tags.slice(0, 2).map((tag) => (
@@ -280,14 +356,29 @@ export function CravingSelector() {
                       </div>
                     </div>
 
+                    {/* Match score bar */}
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-[10px] font-medium text-white/35">AI Match</span>
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-orange-600 to-orange-400"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${matchPercent}%` }}
+                          transition={{ duration: 0.6, delay: 0.1 + index * 0.05, ease: 'easeOut' }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-orange-400">{matchPercent}%</span>
+                    </div>
+
                     <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={() => handleQuickAdd(item)}
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(event) => handleQuickAdd(item, event.currentTarget)}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-orange-500 py-2 text-xs font-bold text-black transition-colors hover:bg-orange-600"
                       >
                         <Plus size={14} />
                         Quick Add
-                      </button>
+                      </motion.button>
                       <button
                         onClick={() => setSelectedItem(item)}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/10"

@@ -1,3 +1,4 @@
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Download, MapPin, Phone, Sparkles, UtensilsCrossed } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +7,9 @@ import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { useSettings } from '@/hooks/useSettings';
 import { analytics } from '@/lib/analytics';
 import { formatCurrency } from '@/lib/utils';
+
+const isCoarsePointer = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 
 const TRUST_CHIPS = [
   'No login needed',
@@ -19,9 +23,21 @@ export function HomeHero() {
   const navigate = useNavigate();
   const { canInstall, promptInstall } = usePWAInstall();
   const { settings } = useSettings();
+  const orbitRef = useRef<HTMLDivElement>(null);
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
 
   const hour = new Date().getHours();
   const isNight = hour >= settings.nightStartHour || hour < settings.nightEndHour;
+
+  const handleOrbitMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isCoarsePointer() || !orbitRef.current) return;
+    const rect = orbitRef.current.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width - 0.5;
+    const py = (event.clientY - rect.top) / rect.height - 0.5;
+    setParallax({ x: px, y: py });
+  };
+
+  const handleOrbitLeave = () => setParallax({ x: 0, y: 0 });
 
   const handleInstall = async () => {
     analytics.installClick({ source: 'home-hero' });
@@ -39,36 +55,82 @@ export function HomeHero() {
     <section className="relative flex min-h-[100dvh] flex-col overflow-hidden">
       <div className="absolute inset-0 bg-[#080808]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,122,0,0.18)_0%,transparent_60%)]" />
+      <div className="absolute inset-0 holo-grid opacity-40 [mask-image:radial-gradient(ellipse_at_top,black_0%,transparent_65%)]" />
       <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-[#080808] via-transparent to-transparent" />
 
-      <div className="pointer-events-none absolute right-0 top-16 h-[420px] w-full overflow-hidden">
+      <div
+        ref={orbitRef}
+        onPointerMove={handleOrbitMove}
+        onPointerLeave={handleOrbitLeave}
+        className="absolute right-0 top-16 h-[420px] w-full overflow-hidden perspective-1200"
+      >
         <motion.img
           src="/food-burger.jpg"
           alt=""
           className="absolute right-[6%] top-[8%] h-24 w-24 rounded-2xl border border-white/10 object-cover shadow-2xl"
-          animate={{ y: [0, -16, 0], rotate: [0, 3, 0] }}
-          transition={{ duration: 5.2, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{
+            y: [0, -16, 0],
+            rotate: [0, 3, 0],
+            x: parallax.x * 26,
+            translateY: parallax.y * 26,
+          }}
+          transition={{
+            y: { duration: 5.2, repeat: Infinity, ease: 'easeInOut' },
+            rotate: { duration: 5.2, repeat: Infinity, ease: 'easeInOut' },
+            x: { type: 'spring', damping: 20, stiffness: 120 },
+            translateY: { type: 'spring', damping: 20, stiffness: 120 },
+          }}
         />
         <motion.img
           src="/food-shawarma.jpg"
           alt=""
           className="absolute right-[18%] top-[38%] h-20 w-20 rounded-2xl border border-white/10 object-cover shadow-2xl"
-          animate={{ y: [0, -12, 0], rotate: [0, -4, 0] }}
-          transition={{ duration: 4.6, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+          animate={{
+            y: [0, -12, 0],
+            rotate: [0, -4, 0],
+            x: parallax.x * 42,
+            translateY: parallax.y * 42,
+          }}
+          transition={{
+            y: { duration: 4.6, repeat: Infinity, ease: 'easeInOut', delay: 0.4 },
+            rotate: { duration: 4.6, repeat: Infinity, ease: 'easeInOut', delay: 0.4 },
+            x: { type: 'spring', damping: 20, stiffness: 120 },
+            translateY: { type: 'spring', damping: 20, stiffness: 120 },
+          }}
         />
         <motion.img
           src="/food-pizza.jpg"
           alt=""
           className="absolute right-[36%] top-[18%] h-16 w-16 rounded-xl border border-white/10 object-cover shadow-xl"
-          animate={{ y: [0, -10, 0], rotate: [0, 6, 0] }}
-          transition={{ duration: 5.8, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          animate={{
+            y: [0, -10, 0],
+            rotate: [0, 6, 0],
+            x: parallax.x * -18,
+            translateY: parallax.y * -18,
+          }}
+          transition={{
+            y: { duration: 5.8, repeat: Infinity, ease: 'easeInOut', delay: 1 },
+            rotate: { duration: 5.8, repeat: Infinity, ease: 'easeInOut', delay: 1 },
+            x: { type: 'spring', damping: 20, stiffness: 120 },
+            translateY: { type: 'spring', damping: 20, stiffness: 120 },
+          }}
         />
         <motion.img
           src="/food-pasta.jpg"
           alt=""
           className="absolute right-[10%] top-[56%] h-14 w-14 rounded-xl border border-white/10 object-cover opacity-70 shadow-xl"
-          animate={{ y: [0, -8, 0], rotate: [0, -4, 0] }}
-          transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut', delay: 1.6 }}
+          animate={{
+            y: [0, -8, 0],
+            rotate: [0, -4, 0],
+            x: parallax.x * 34,
+            translateY: parallax.y * 34,
+          }}
+          transition={{
+            y: { duration: 4.8, repeat: Infinity, ease: 'easeInOut', delay: 1.6 },
+            rotate: { duration: 4.8, repeat: Infinity, ease: 'easeInOut', delay: 1.6 },
+            x: { type: 'spring', damping: 20, stiffness: 120 },
+            translateY: { type: 'spring', damping: 20, stiffness: 120 },
+          }}
         />
       </div>
 
@@ -135,13 +197,15 @@ export function HomeHero() {
           transition={{ duration: 0.5, delay: 0.36 }}
           className="mt-8 flex flex-col gap-3"
         >
-          <button
+          <motion.button
             onClick={() => navigate('/craving')}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(255,122,0,0.3)] transition-all hover:bg-orange-600 active:scale-[0.98]"
+            whileHover={{ scale: 1.015, boxShadow: '0 0 45px rgba(255,122,0,0.5)' }}
+            whileTap={{ scale: 0.97 }}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(255,122,0,0.3)] transition-colors hover:bg-orange-600"
           >
             Start Food Mission
             <ArrowRight size={20} />
-          </button>
+          </motion.button>
 
           <div className="grid grid-cols-2 gap-3">
             <button

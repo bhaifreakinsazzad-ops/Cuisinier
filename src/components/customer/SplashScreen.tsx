@@ -65,9 +65,15 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           />
         ))}
 
+        {/* Holographic HUD backdrop grid */}
+        <div className="absolute inset-0 holo-grid opacity-25 [mask-image:radial-gradient(circle_at_center,black_0%,transparent_60%)]" />
+
         {/* Scanner ring */}
         <motion.div
           className="absolute w-64 h-64 border border-orange-500/20 rounded-full"
+          style={{
+            background: 'conic-gradient(from 0deg, transparent 0%, rgba(255,122,0,0.25) 15%, transparent 30%, transparent 100%)',
+          }}
           animate={{ rotate: 360, scale: [1, 1.1, 1] }}
           transition={{ rotate: { duration: 8, repeat: Infinity, ease: 'linear' }, scale: { duration: 2, repeat: Infinity } }}
         />

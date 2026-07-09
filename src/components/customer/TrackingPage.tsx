@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BUSINESS_INFO } from '@/config/business';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GlowBadge } from '@/components/ui/GlowBadge';
+import { ConfettiBurst } from '@/components/ui/ConfettiBurst';
 import { orderRepository, settingsRepository } from '@/data/repository';
 import { STATUS_CONFIG, STATUS_FLOW } from '@/types';
 import type { Order, Settings } from '@/types';
@@ -21,6 +22,13 @@ export function TrackingPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const justPlaced = Boolean((location.state as { justPlaced?: boolean } | null)?.justPlaced);
+  const [showConfetti, setShowConfetti] = useState(justPlaced);
+
+  useEffect(() => {
+    if (!justPlaced) return;
+    const timeout = window.setTimeout(() => setShowConfetti(false), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [justPlaced]);
 
   useEffect(() => {
     let active = true;
@@ -115,6 +123,8 @@ export function TrackingPage() {
   return (
     <div className="relative min-h-[100dvh] bg-[#080808]">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,122,0,0.05)_0%,transparent_60%)]" />
+
+      {showConfetti && <ConfettiBurst />}
 
       <div className="relative z-10 mx-auto max-w-xl px-5 py-6 pb-32">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
