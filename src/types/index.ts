@@ -59,6 +59,7 @@ export interface MenuItem {
   category: Category;
   tags: Tag[];
   image: string;
+  visualEmoji?: string;
   available: boolean;
   featured: boolean;
   midnightPick: boolean;
@@ -136,7 +137,7 @@ export const CATEGORY_EMOJI: Record<string, string> = {
   Pizza: '🍕',
   Pasta: '🍝',
   'Fries & Snacks': '🍟',
-  Combos: '📦',
+  Combos: '🌙',
   Drinks: '🥤',
 };
 

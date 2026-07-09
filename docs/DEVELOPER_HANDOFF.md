@@ -11,43 +11,118 @@
 
 ## Important Files
 
-- [src/App.tsx](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/App.tsx)
-- [src/main.tsx](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/main.tsx)
-- [src/data/storage.ts](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/data/storage.ts)
-- [src/data/repository.ts](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/data/repository.ts)
-- [src/lib/supabase.ts](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/lib/supabase.ts)
-- [src/lib/adminAuth.ts](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/lib/adminAuth.ts)
-- [src/lib/analytics.ts](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/lib/analytics.ts)
-- [src/components/customer/HomeHero.tsx](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/components/customer/HomeHero.tsx)
-- [src/components/customer/CheckoutPage.tsx](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/components/customer/CheckoutPage.tsx)
-- [src/components/customer/TrackingPage.tsx](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/components/customer/TrackingPage.tsx)
-- [src/components/admin/AdminDashboard.tsx](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/src/components/admin/AdminDashboard.tsx)
-- [public/manifest.webmanifest](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/public/manifest.webmanifest)
-- [public/service-worker.js](/F:/HQ/Codex/Cuisinier/cuisinier_kimi_fixed/public/service-worker.js)
+- `src/App.tsx`
+- `src/main.tsx`
+- `src/data/storage.ts`
+- `src/data/repository.ts`
+- `src/lib/supabase.ts`
+- `src/lib/adminAuth.ts`
+- `src/lib/analytics.ts`
+- `src/components/customer/HomeHero.tsx`
+- `src/components/customer/CheckoutPage.tsx`
+- `src/components/customer/TrackingPage.tsx`
+- `src/components/admin/AdminDashboard.tsx`
+- `public/manifest.webmanifest`
+- `public/service-worker.js`
+
+## Menu System
+
+### Source of truth
+
+`src/data/seedMenu.ts` — contains all 20 official menu items, v2.0.
+
+Export `MENU_VERSION = '2.0'` — bumping this triggers normalization for returning users with stale localStorage data.
+
+### Menu structure
+
+- 7 categories: Shawarma, Burger, Pizza, Pasta, Fries & Snacks, Combos, Drinks
+- 20 items total
+- Each item has: id, name, category, description, price, tags, image, visualEmoji, available, featured, midnightPick, createdAt
+
+### Add-ons (universal)
+
+Defined in `src/components/customer/ItemDetailModal.tsx`:
+- Extra Cheese: ৳50
+- Extra Sauce: ৳30
+- Extra Spicy: ৳20
+
+Add-ons flow into `CartItem.addons`, `OrderItem.addons`, Supabase `order_items.add_ons`, admin detail view, and WhatsApp forward message.
+
+### How to update the menu
+
+1. Edit `src/data/seedMenu.ts` with updated items.
+2. Bump `MENU_VERSION` (e.g. `'2.1'`).
+3. Run `npm run typecheck && npm run build`.
+4. Deploy via `git push origin main`.
+5. Run `docs/SUPABASE_MENU_SEED.sql` in Supabase SQL Editor to sync Supabase.
+
+### Supabase menu seeding
+
+`docs/SUPABASE_MENU_SEED.sql` — safe upsert by item name. Run after schema setup or any time menu changes. Does NOT delete existing orders.
+
+Run verification query at the bottom to confirm 7 categories and 20 items.
+
+### localStorage menu behavior
+
+- If no menu in localStorage → seed from `SEED_MENU_ITEMS` and write `cuisinier_menu_version = 2.0`.
+- If version matches → use stored data as-is (admin may have edited availability/price).
+- If version is stale → normalize fields, merge any new items from seed, write new version.
+- If stored data is corrupted (< 5 items) → reset to seed entirely.
+
+### Menu normalization
+
+Implemented in `src/data/storage.ts` → `getMenuItems()`:
+- Repairs corrupted category/tag values
+- Deduplicates by name
+- Adds missing seed items that don't exist in stored data
+- Preserves admin-edited prices and availability
+
+## Craving Recommendation Logic
+
+Defined in `src/components/customer/CravingSelector.tsx` → `recommendedItems` useMemo:
+
+**Mood → Tags mapping:**
+- cheesy → `['Cheesy']`
+- spicy → `['Spicy']`
+- quick_bite → `['Quick Bite']`
+- midnight_combo → `['Midnight Combo', 'Midnight Pick']`
+- heavy_meal → `['Heavy Meal']`
+- best_value → `['Best Value']`
+- most_popular → `['Most Popular', 'Popular']`
+
+**Hunger → Categories:**
+- light → Shawarma, Fries & Snacks, Drinks
+- medium → Burger, Pasta, Shawarma
+- monster → Burger, Pizza, Combos
+
+**People → Categories:**
+- solo → Shawarma, Burger, Fries & Snacks, Combos
+- two → Burger, Pizza, Pasta, Combos
+- group → Pizza, Combos, Fries & Snacks, Drinks
+
+Fallback chain: tag-matched available items → featured items → first 6 available items.
 
 ## Repository Layer
 
 Reads and writes go through `src/data/repository.ts`.
 
-- `menuRepository`
-- `orderRepository`
-- `settingsRepository`
+- `menuRepository` — list, upsert, remove
+- `orderRepository` — list, getByCode, create (via atomic RPC or sequential fallback), updateStatus, subscribeToOrders
+- `settingsRepository` — get, save
 
 Supabase mode:
-
 - Loads menu, orders, order items, and settings from Supabase
-- Writes orders, order items, and status logs to Supabase
+- Writes orders atomically via `create_order_with_items` RPC (falls back to sequential inserts on PGRST202)
 - Updates status by `order_code`
-- Normalizes remote order item writes so local-only IDs are not inserted into UUID columns
 
 Fallback mode:
-
 - Uses localStorage only
 - Emits `cuisinier:data` so screens refresh in the same browser tab
 
 ## Local Storage Keys
 
 - `cuisinier_menu_items`
+- `cuisinier_menu_version`
 - `cuisinier_orders`
 - `cuisinier_cart`
 - `cuisinier_settings`
@@ -55,20 +130,10 @@ Fallback mode:
 
 ## Admin Auth
 
-- Password uses `VITE_ADMIN_PASSWORD` when provided
-- Local fallback remains `cuisinier-admin` when env is missing
-- Session TTL uses `VITE_ADMIN_SESSION_TTL_MINUTES`
-- Session state is stored locally and validated on route entry
-
-Risk:
-
-- This is still client-side admin protection, not production-grade server-side auth
-
-Recommended hardening:
-
-1. Move admin mutations behind server-side functions
-2. Add Supabase Auth for operators
-3. Restrict table writes with RLS and role-aware policies
+- Admin login calls `/api/admin/login` (Vercel serverless) which reads `ADMIN_PASSWORD` server-side
+- Session is an HMAC-signed token stored in an HttpOnly cookie (`cuisinier_admin`)
+- `VITE_ADMIN_PASSWORD` is used only as a local dev fallback; must be blank in production
+- Rate limited: 5 attempts per IP per 15 minutes
 
 ## PWA
 
@@ -81,26 +146,30 @@ Recommended hardening:
 
 ## ElevenLabs Widget
 
-- Customer-only widget component: [src/components/customer/ElevenLabsAgentWidget.tsx](/F:/HQ/Codex/Cuisinier/Cuisinier_github_push/src/components/customer/ElevenLabsAgentWidget.tsx)
+- Customer-only widget component: `src/components/customer/ElevenLabsAgentWidget.tsx`
 - Custom element: `<elevenlabs-convai>`
 - Agent ID: `agent_6801krp4gs21fm49n6jdxv19s0qb`
-- Script URL: `https://unpkg.com/@elevenlabs/convai-widget-embed`
-- Visible on customer routes only: `/`, `/menu`, `/cart`, `/checkout`, `/track`, `/order/:orderId`, `/support`, `/install`
-- Excluded from `/admin` and all admin subroutes
-- The script loads asynchronously and only once; if ElevenLabs is blocked or unavailable, the rest of the app still works normally
-- No private API key is required or stored
-- Do not add the widget script to the service worker precache
+- Visible on customer routes only — excluded from `/admin`
+
+## Analytics (Meta Pixel + GA4)
+
+- Pixel ID: `983944370699450` (set via `VITE_META_PIXEL_ID`)
+- Events fired: `ViewContent` (item modal open), `AddToCart`, `InitiateCheckout`, `Purchase`, `Contact`
+- SPA route tracking: `trackPageView()` called on every `location.pathname` change in `App.tsx`
+- External fbq script loaded once; bootstrap stub prevents dropped calls
 
 ## Performance
 
 - Public and admin screens are lazy-loaded
 - Vendor chunks are split in `vite.config.ts`
+- Menu filtering/search uses `useMemo` — no re-renders on unrelated state changes
 - Keep additional dependencies lightweight
 
 ## Continue Safely
 
-1. Preserve the repository boundary
+1. Preserve the repository boundary (`src/data/repository.ts`)
 2. Keep localStorage fallback intact
 3. Do not force customer login
 4. Do not add fake GPS tracking
-5. Re-run `npm run typecheck` and `npm run build` after each substantial change
+5. Do not expose `SUPABASE_SERVICE_ROLE_KEY` to the browser
+6. Re-run `npm run typecheck` and `npm run build` after each substantial change

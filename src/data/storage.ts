@@ -1,5 +1,5 @@
 import type { MenuItem, CartItem, Order, Settings, AdminSession } from '@/types';
-import { SEED_MENU_ITEMS } from './seedMenu';
+import { SEED_MENU_ITEMS, MENU_VERSION } from './seedMenu';
 import { BUSINESS_INFO } from '@/config/business';
 
 // ============================================================
@@ -10,6 +10,7 @@ export const CUISINIER_DATA_EVENT = 'cuisinier:data';
 
 const KEYS = {
   MENU: 'cuisinier_menu_items',
+  MENU_VERSION: 'cuisinier_menu_version',
   ORDERS: 'cuisinier_orders',
   CART: 'cuisinier_cart',
   SETTINGS: 'cuisinier_settings',
@@ -50,13 +51,84 @@ function removeKey(key: string) {
 }
 
 // --- Menu ---
+
+const VALID_CATEGORIES = new Set(['Shawarma', 'Burger', 'Pizza', 'Pasta', 'Fries & Snacks', 'Combos', 'Drinks']);
+const VALID_TAGS = new Set(['Popular', 'Cheesy', 'Spicy', 'Midnight Pick', 'Best Value', 'Group Order', 'Heavy Meal', 'Quick Bite', 'Most Popular', 'Midnight Combo', 'Premium', 'Add-on']);
+
+function repairMenuItem(item: Partial<MenuItem>): MenuItem | null {
+  if (!item.id || !item.name || typeof item.price !== 'number' || item.price <= 0) return null;
+  const category = VALID_CATEGORIES.has(item.category ?? '') ? (item.category as MenuItem['category']) : 'Burger';
+  const tags = (item.tags ?? []).filter((t) => VALID_TAGS.has(t)) as MenuItem['tags'];
+  return {
+    id: item.id,
+    recordId: item.recordId,
+    name: item.name,
+    description: item.description ?? '',
+    price: item.price,
+    category,
+    tags,
+    image: item.image || '/food-burger.jpg',
+    visualEmoji: item.visualEmoji,
+    available: item.available ?? true,
+    featured: item.featured ?? false,
+    midnightPick: item.midnightPick ?? false,
+    createdAt: item.createdAt ?? new Date().toISOString(),
+  };
+}
+
+function normalizeMenuData(data: unknown[]): MenuItem[] {
+  const seen = new Set<string>();
+  const repaired: MenuItem[] = [];
+  for (const raw of data) {
+    const item = repairMenuItem(raw as Partial<MenuItem>);
+    if (!item) continue;
+    const key = item.name.toLowerCase().trim();
+    if (!seen.has(key)) {
+      seen.add(key);
+      repaired.push(item);
+    }
+  }
+  return repaired;
+}
+
 export function getMenuItems(): MenuItem[] {
+  const storedVersion = isBrowser() ? localStorage.getItem(KEYS.MENU_VERSION) : null;
   const data = readJSON<MenuItem[] | null>(KEYS.MENU, null);
+
+  // No data at all → seed fresh
   if (!data?.length) {
     writeJSON(KEYS.MENU, SEED_MENU_ITEMS);
+    if (isBrowser()) localStorage.setItem(KEYS.MENU_VERSION, MENU_VERSION);
     return SEED_MENU_ITEMS;
   }
-  return data;
+
+  // Version matches → trust stored data (admin may have edited it)
+  if (storedVersion === MENU_VERSION) {
+    return data;
+  }
+
+  // Stale or missing version → repair/normalize in place (preserves admin edits)
+  const repaired = normalizeMenuData(data);
+
+  // If repair produced < 5 items the data is clearly corrupt → reset to seed
+  if (repaired.length < 5) {
+    writeJSON(KEYS.MENU, SEED_MENU_ITEMS);
+    if (isBrowser()) localStorage.setItem(KEYS.MENU_VERSION, MENU_VERSION);
+    return SEED_MENU_ITEMS;
+  }
+
+  // Merge: add any seed items that are missing from stored (new menu additions)
+  const storedNames = new Set(repaired.map((i) => i.name.toLowerCase().trim()));
+  const merged = [...repaired];
+  for (const seedItem of SEED_MENU_ITEMS) {
+    if (!storedNames.has(seedItem.name.toLowerCase().trim())) {
+      merged.push(seedItem);
+    }
+  }
+
+  writeJSON(KEYS.MENU, merged);
+  if (isBrowser()) localStorage.setItem(KEYS.MENU_VERSION, MENU_VERSION);
+  return merged;
 }
 
 export function saveMenuItems(items: MenuItem[]) {

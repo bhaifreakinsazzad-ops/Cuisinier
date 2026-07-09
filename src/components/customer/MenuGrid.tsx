@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { CUISINIER_DATA_EVENT, addToCart, getMenuItems } from '@/data/storage';
 import type { Category, MenuItem, Tag } from '@/types';
+import { CATEGORY_EMOJI } from '@/types';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GlowBadge } from '@/components/ui/GlowBadge';
 import { analytics } from '@/lib/analytics';
@@ -11,7 +12,39 @@ import { formatCurrency } from '@/lib/utils';
 import { ItemDetailModal } from './ItemDetailModal';
 
 const CATEGORIES: Category[] = ['All', 'Shawarma', 'Burger', 'Pizza', 'Pasta', 'Fries & Snacks', 'Combos', 'Drinks'];
-const TAGS: Tag[] = ['Popular', 'Cheesy', 'Spicy', 'Midnight Pick', 'Best Value', 'Group Order', 'Heavy Meal', 'Quick Bite'];
+const TAGS: Tag[] = ['Popular', 'Most Popular', 'Cheesy', 'Spicy', 'Midnight Pick', 'Best Value', 'Group Order', 'Heavy Meal', 'Quick Bite'];
+
+function FoodCardImage({ item }: { item: MenuItem }) {
+  const [failed, setFailed] = useState(false);
+  const emoji = item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️';
+
+  if (failed || !item.image) {
+    return (
+      <div
+        className={`mb-3 flex h-40 w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-6xl ${
+          !item.available ? 'grayscale-[0.5]' : ''
+        }`}
+      >
+        {emoji}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative mb-3">
+      <img
+        src={item.image}
+        alt={item.name}
+        onError={() => setFailed(true)}
+        className={`h-40 w-full rounded-xl border border-white/10 object-cover ${!item.available ? 'grayscale-[0.35]' : ''}`}
+      />
+      {/* Emoji badge overlay */}
+      <span className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-base backdrop-blur-sm">
+        {emoji}
+      </span>
+    </div>
+  );
+}
 
 export function MenuGrid() {
   const [searchParams] = useSearchParams();
@@ -59,23 +92,32 @@ export function MenuGrid() {
   const availableCount = filtered.filter((item) => item.available).length;
 
   const handleQuickAdd = (item: MenuItem) => {
-    if (!item.available) {
-      return;
-    }
+    if (!item.available) return;
 
-    addToCart({
-      menuItem: item,
-      quantity: 1,
-      addons: [],
-      note: '',
-    });
+    addToCart({ menuItem: item, quantity: 1, addons: [], note: '' });
     analytics.addToCart({
       currency: 'BDT',
+      content_ids: [item.id],
+      content_name: item.name,
+      content_category: item.category,
+      content_type: 'product',
+      value: item.price,
       itemId: item.id,
       itemName: item.name,
       quantity: 1,
-      value: item.price,
       source: 'menu-grid',
+    });
+  };
+
+  const handleOpenItem = (item: MenuItem) => {
+    setSelectedItem(item);
+    analytics.viewContent({
+      content_ids: [item.id],
+      content_name: item.name,
+      content_category: item.category,
+      content_type: 'product',
+      value: item.price,
+      currency: 'BDT',
     });
   };
 
@@ -86,9 +128,12 @@ export function MenuGrid() {
       <div className="relative z-10 mx-auto max-w-6xl px-5 py-6 pb-32">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-white">Full Menu</h1>
-          <p className="text-sm text-white/50">Fast food discovery built for midnight conversion.</p>
+          <p className="text-sm text-white/50">
+            {items.length} items across {CATEGORIES.length - 1} categories.
+          </p>
         </motion.div>
 
+        {/* Search bar */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -100,7 +145,7 @@ export function MenuGrid() {
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search burger, shawarma, pizza..."
+            placeholder="Search burger, shawarma, pizza, cheesy…"
             className="h-12 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-12 text-sm text-white placeholder:text-white/30 transition-colors focus:border-orange-500/50 focus:outline-none"
           />
           <button
@@ -108,11 +153,13 @@ export function MenuGrid() {
             className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 transition-colors ${
               showFilters ? 'bg-orange-500/20 text-orange-400' : 'text-white/40 hover:text-white/70'
             }`}
+            aria-label="Toggle tag filters"
           >
             <SlidersHorizontal size={16} />
           </button>
         </motion.div>
 
+        {/* Category tabs with emoji */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-4 -mx-1">
           <div className="scrollbar-hide flex gap-1.5 overflow-x-auto px-1 pb-2">
             {CATEGORIES.map((category) => (
@@ -125,12 +172,13 @@ export function MenuGrid() {
                     : 'border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90'
                 }`}
               >
-                {category}
+                {category === 'All' ? 'All' : `${CATEGORY_EMOJI[category] ?? ''} ${category}`}
               </button>
             ))}
           </div>
         </motion.div>
 
+        {/* Tag filters */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -171,6 +219,7 @@ export function MenuGrid() {
           <p className="text-xs text-white/30">Quick add or open to customize</p>
         </div>
 
+        {/* Menu grid */}
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence>
             {filtered.map((item, index) => (
@@ -178,23 +227,19 @@ export function MenuGrid() {
                 key={item.id}
                 delay={index * 0.04}
                 hover={item.available}
-                onClick={item.available ? () => setSelectedItem(item) : undefined}
+                onClick={item.available ? () => handleOpenItem(item) : undefined}
                 className={!item.available ? 'opacity-75' : ''}
               >
                 <div className="relative">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className={`mb-3 h-40 w-full rounded-xl border border-white/10 object-cover ${!item.available ? 'grayscale-[0.35]' : ''}`}
-                  />
+                  <FoodCardImage item={item} />
                   {item.midnightPick && (
-                    <span className="absolute left-2 top-2 rounded-full bg-red-500/75 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
-                      Midnight Pick
+                    <span className="absolute left-2 top-2 rounded-full bg-red-500/80 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                      🌙 Midnight Pick
                     </span>
                   )}
-                  {item.featured && (
-                    <span className="absolute right-2 top-2 rounded-full bg-orange-500/85 px-2 py-0.5 text-[10px] font-bold text-black backdrop-blur-sm">
-                      Featured
+                  {item.featured && !item.midnightPick && (
+                    <span className="absolute left-2 top-2 rounded-full bg-orange-500/85 px-2 py-0.5 text-[10px] font-bold text-black backdrop-blur-sm">
+                      ⭐ Featured
                     </span>
                   )}
                   {!item.available && (
@@ -227,7 +272,7 @@ export function MenuGrid() {
                       onClick={(event) => {
                         event.stopPropagation();
                         if (!item.available) return;
-                        setSelectedItem(item);
+                        handleOpenItem(item);
                       }}
                       disabled={!item.available}
                       className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
@@ -254,12 +299,15 @@ export function MenuGrid() {
 
         {filtered.length === 0 && (
           <div className="py-20 text-center">
+            <p className="text-4xl mb-3">🔍</p>
             <p className="text-sm text-white/30">No items found. Try a different search or filter.</p>
           </div>
         )}
       </div>
 
-      <AnimatePresence>{selectedItem && <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />}</AnimatePresence>
+      <AnimatePresence>
+        {selectedItem && <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
+      </AnimatePresence>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { CUISINIER_DATA_EVENT, addToCart, getMenuItems } from '@/data/storage';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GlowBadge } from '@/components/ui/GlowBadge';
 import type { HungerLevel, MenuItem, Mood, PeopleCount } from '@/types';
+import { CATEGORY_EMOJI } from '@/types';
 import { analytics } from '@/lib/analytics';
 import { formatCurrency } from '@/lib/utils';
 import { ItemDetailModal } from './ItemDetailModal';
@@ -69,13 +70,13 @@ export function CravingSelector() {
     const hungerCategoryMap: Record<HungerLevel, string[]> = {
       light: ['Shawarma', 'Fries & Snacks', 'Drinks'],
       medium: ['Burger', 'Pasta', 'Shawarma'],
-      monster: ['Pizza', 'Combos', 'Burger'],
+      monster: ['Burger', 'Pizza', 'Combos'],
     };
 
     const peopleCategoryMap: Record<PeopleCount, string[]> = {
-      solo: ['Shawarma', 'Burger', 'Pasta', 'Fries & Snacks'],
-      two: ['Burger', 'Pizza', 'Pasta'],
-      group: ['Pizza', 'Combos'],
+      solo: ['Shawarma', 'Burger', 'Fries & Snacks', 'Combos'],
+      two: ['Burger', 'Pizza', 'Pasta', 'Combos'],
+      group: ['Pizza', 'Combos', 'Fries & Snacks', 'Drinks'],
     };
 
     const targetTags = moodTagMap[mood] ?? [];
@@ -110,18 +111,17 @@ export function CravingSelector() {
   };
 
   const handleQuickAdd = (item: MenuItem) => {
-    addToCart({
-      menuItem: item,
-      quantity: 1,
-      addons: [],
-      note: '',
-    });
+    addToCart({ menuItem: item, quantity: 1, addons: [], note: '' });
     analytics.addToCart({
       currency: 'BDT',
+      content_ids: [item.id],
+      content_name: item.name,
+      content_category: item.category,
+      content_type: 'product',
+      value: item.price,
       itemId: item.id,
       itemName: item.name,
       quantity: 1,
-      value: item.price,
       source: 'craving-selector',
     });
   };
@@ -261,7 +261,9 @@ export function CravingSelector() {
                 {recommendedItems.map((item, index) => (
                   <GlassCard key={item.id} delay={index * 0.08}>
                     <div className="flex items-center gap-3">
-                      <img src={item.image} alt={item.name} className="h-14 w-14 rounded-xl border border-white/10 object-cover" />
+                      <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-3xl">
+                        {item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️'}
+                      </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-white">{item.name}</p>
                         <p className="truncate text-xs text-white/40">{item.description}</p>
