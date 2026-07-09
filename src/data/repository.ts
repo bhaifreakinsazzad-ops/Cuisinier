@@ -133,10 +133,16 @@ function normalizeMenuItem(item: MenuItem): MenuItem {
 }
 
 function normalizeMenuItems(items: MenuItem[]) {
-  const normalized = items.map(normalizeMenuItem);
-  if (JSON.stringify(normalized) !== JSON.stringify(items)) {
-    saveMenuItems(normalized);
-  }
+  let needsSave = false;
+  const normalized = items.map((item) => {
+    const norm = normalizeMenuItem(item);
+    // Shallow key check only — avoid expensive full JSON.stringify diff
+    if (norm.id !== item.id || norm.recordId !== item.recordId) {
+      needsSave = true;
+    }
+    return norm;
+  });
+  if (needsSave) saveMenuItems(normalized);
   return normalized;
 }
 
@@ -506,22 +512,35 @@ export const orderRepository = {
     const { orderRow, orderItemRows, statusLogRow, recordId } = toOrderInsert(order);
     const orderWithRecordId: Order = { ...order, recordId };
 
-    const orderInsert = await client.from('orders').insert(orderRow);
-    if (orderInsert.error) {
-      throw orderInsert.error;
+    // ── Attempt atomic RPC (requires create_order_with_items function in Supabase) ──
+    const rpcResult = await client.rpc('create_order_with_items', {
+      order_payload: orderRow,
+      items_payload: orderItemRows,
+      status_log_payload: statusLogRow,
+    });
+
+    if (!rpcResult.error) {
+      createOrder(orderWithRecordId);
+      return orderWithRecordId;
     }
+
+    // PGRST202 = function not found — fall back to sequential inserts
+    const notFound = rpcResult.error.code === 'PGRST202' || rpcResult.error.message?.includes('Could not find the function');
+    if (!notFound) {
+      throw rpcResult.error;
+    }
+
+    // ── Sequential fallback (no atomicity guarantee) ──────────────────────────
+    const orderInsert = await client.from('orders').insert(orderRow);
+    if (orderInsert.error) throw orderInsert.error;
 
     if (orderItemRows.length > 0) {
       const orderItemsInsert = await client.from('order_items').insert(orderItemRows);
-      if (orderItemsInsert.error) {
-        throw orderItemsInsert.error;
-      }
+      if (orderItemsInsert.error) throw orderItemsInsert.error;
     }
 
     const statusInsert = await client.from('order_status_logs').insert(statusLogRow);
-    if (statusInsert.error) {
-      throw statusInsert.error;
-    }
+    if (statusInsert.error) throw statusInsert.error;
 
     createOrder(orderWithRecordId);
     return orderWithRecordId;

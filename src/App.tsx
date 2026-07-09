@@ -6,19 +6,38 @@ import { HomeHero } from '@/components/customer/HomeHero';
 import { BottomNav } from '@/components/customer/BottomNav';
 import { ElevenLabsAgentWidget } from '@/components/customer/ElevenLabsAgentWidget';
 import { PWAInstallPrompt, OfflineBanner } from '@/components/pwa/PWAInstallPrompt';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { bootstrapData } from '@/data/repository';
-import { getValidatedAdminSession } from '@/lib/adminAuth';
-import { initAnalytics } from '@/lib/analytics';
+import { verifyAdminSession } from '@/lib/adminAuth';
+import { initAnalytics, trackPageView } from '@/lib/analytics';
 
-const CravingSelector = lazy(() => import('@/components/customer/CravingSelector').then((module) => ({ default: module.CravingSelector })));
-const MenuGrid = lazy(() => import('@/components/customer/MenuGrid').then((module) => ({ default: module.MenuGrid })));
-const CartPage = lazy(() => import('@/components/customer/CartPage').then((module) => ({ default: module.CartPage })));
-const CheckoutPage = lazy(() => import('@/components/customer/CheckoutPage').then((module) => ({ default: module.CheckoutPage })));
-const TrackingPage = lazy(() => import('@/components/customer/TrackingPage').then((module) => ({ default: module.TrackingPage })));
-const TrackPage = lazy(() => import('@/components/customer/TrackPage').then((module) => ({ default: module.TrackPage })));
-const SupportPage = lazy(() => import('@/components/customer/SupportPage').then((module) => ({ default: module.SupportPage })));
-const AdminLogin = lazy(() => import('@/components/admin/AdminLogin').then((module) => ({ default: module.AdminLogin })));
-const AdminDashboard = lazy(() => import('@/components/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+const CravingSelector = lazy(() =>
+  import('@/components/customer/CravingSelector').then((m) => ({ default: m.CravingSelector })),
+);
+const MenuGrid = lazy(() =>
+  import('@/components/customer/MenuGrid').then((m) => ({ default: m.MenuGrid })),
+);
+const CartPage = lazy(() =>
+  import('@/components/customer/CartPage').then((m) => ({ default: m.CartPage })),
+);
+const CheckoutPage = lazy(() =>
+  import('@/components/customer/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
+);
+const TrackingPage = lazy(() =>
+  import('@/components/customer/TrackingPage').then((m) => ({ default: m.TrackingPage })),
+);
+const TrackPage = lazy(() =>
+  import('@/components/customer/TrackPage').then((m) => ({ default: m.TrackPage })),
+);
+const SupportPage = lazy(() =>
+  import('@/components/customer/SupportPage').then((m) => ({ default: m.SupportPage })),
+);
+const AdminLogin = lazy(() =>
+  import('@/components/admin/AdminLogin').then((m) => ({ default: m.AdminLogin })),
+);
+const AdminDashboard = lazy(() =>
+  import('@/components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })),
+);
 
 function HomePage() {
   return (
@@ -31,88 +50,8 @@ function HomePage() {
 function RouteFallback() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#080808] px-5">
-      <p className="text-sm text-white/45">Loading Cuisinier...</p>
+      <p className="text-sm text-white/45">Loading Cuisinier…</p>
     </div>
-  );
-}
-
-function AppContent() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [showSplash, setShowSplash] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  const isAdminRoute = location.pathname.startsWith('/admin');
-
-  const handleSplashComplete = useCallback(() => {
-    setShowSplash(false);
-  }, []);
-
-  const checkAdmin = useCallback(() => {
-    const session = getValidatedAdminSession();
-    setIsAdmin(!!session?.isAuthenticated);
-  }, []);
-
-  useEffect(() => {
-    checkAdmin();
-  }, [checkAdmin, location.pathname]);
-
-  useEffect(() => {
-    initAnalytics();
-    void bootstrapData();
-  }, []);
-
-  if (isAdminRoute) {
-    return (
-      <Suspense fallback={<RouteFallback />}>
-        {isAdmin ? (
-          <AdminDashboard onLogout={() => { setIsAdmin(false); navigate('/'); }} />
-        ) : (
-          <AdminLogin onLogin={() => { setIsAdmin(true); checkAdmin(); }} />
-        )}
-      </Suspense>
-    );
-  }
-
-  return (
-    <>
-      <OfflineBanner />
-
-      <AnimatePresence mode="wait">
-        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      </AnimatePresence>
-
-      <main className="min-h-[100dvh] bg-[#080808]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Suspense fallback={<RouteFallback />}>
-              <Routes location={location}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/craving" element={<CravingSelector />} />
-                <Route path="/menu" element={<MenuGrid />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/order/:orderId" element={<TrackingPage />} />
-                <Route path="/track" element={<TrackPage />} />
-                <Route path="/support" element={<SupportPage />} />
-                <Route path="/install" element={<InstallHelp />} />
-                <Route path="*" element={<HomePage />} />
-              </Routes>
-            </Suspense>
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {!isAdminRoute && !showSplash && <BottomNav />}
-      {!isAdminRoute && <ElevenLabsAgentWidget enabled={!showSplash} />}
-      <PWAInstallPrompt />
-    </>
   );
 }
 
@@ -150,6 +89,116 @@ function InstallHelp() {
   );
 }
 
+function AppContent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showSplash, setShowSplash] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  const checkAdmin = useCallback(async () => {
+    const valid = await verifyAdminSession();
+    setIsAdmin(valid);
+  }, []);
+
+  // On every route change: verify admin state + fire analytics PageView
+  useEffect(() => {
+    void checkAdmin();
+    trackPageView(location.pathname);
+  }, [checkAdmin, location.pathname]);
+
+  // On mount: init analytics + bootstrap data
+  useEffect(() => {
+    initAnalytics();
+    void bootstrapData();
+  }, []);
+
+  if (isAdminRoute) {
+    return (
+      <ErrorBoundary section="admin">
+        <Suspense fallback={<RouteFallback />}>
+          {isAdmin ? (
+            <AdminDashboard
+              onLogout={() => {
+                setIsAdmin(false);
+                navigate('/');
+              }}
+            />
+          ) : (
+            <AdminLogin onLogin={() => void checkAdmin()} />
+          )}
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  return (
+    <>
+      <OfflineBanner />
+
+      <AnimatePresence mode="wait">
+        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      </AnimatePresence>
+
+      <main className="min-h-[100dvh] bg-[#080808]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ErrorBoundary section="routes">
+              <Suspense fallback={<RouteFallback />}>
+                <Routes location={location}>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/craving" element={<CravingSelector />} />
+                  <Route path="/menu" element={<MenuGrid />} />
+                  <Route
+                    path="/cart"
+                    element={
+                      <ErrorBoundary section="cart">
+                        <CartPage />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/checkout"
+                    element={
+                      <ErrorBoundary section="checkout">
+                        <CheckoutPage />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route path="/order/:orderId" element={<TrackingPage />} />
+                  <Route path="/track" element={<TrackPage />} />
+                  <Route path="/support" element={<SupportPage />} />
+                  <Route path="/install" element={<InstallHelp />} />
+                  <Route path="*" element={<HomePage />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {!isAdminRoute && !showSplash && <BottomNav />}
+      {!isAdminRoute && <ElevenLabsAgentWidget enabled={!showSplash} />}
+      <PWAInstallPrompt />
+    </>
+  );
+}
+
 export default function App() {
-  return <AppContent />;
+  return (
+    <ErrorBoundary section="root">
+      <AppContent />
+    </ErrorBoundary>
+  );
 }

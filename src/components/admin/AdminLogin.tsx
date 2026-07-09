@@ -10,18 +10,25 @@ interface AdminLoginProps {
 export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submitting || !password.trim()) return;
 
-    const authenticated = loginAdmin(password);
-    if (!authenticated) {
-      setError('Access denied. Check the admin credentials and try again.');
-      return;
-    }
-
+    setSubmitting(true);
     setError('');
-    onLogin();
+
+    try {
+      const result = await loginAdmin(password);
+      if (result.success) {
+        onLogin();
+      } else {
+        setError(result.error ?? 'Access denied. Check the admin credentials and try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -44,7 +51,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           <div className="relative">
             <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
             <input
@@ -55,7 +62,9 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 setError('');
               }}
               placeholder="Enter admin credentials"
-              className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 text-base text-white placeholder:text-white/30 transition-colors focus:border-orange-500/50 focus:outline-none"
+              disabled={submitting}
+              autoComplete="current-password"
+              className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 text-base text-white placeholder:text-white/30 transition-colors focus:border-orange-500/50 focus:outline-none disabled:opacity-50"
             />
           </div>
 
@@ -72,9 +81,10 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="submit"
-            className="w-full rounded-2xl bg-orange-500 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(255,122,0,0.3)] transition-all hover:bg-orange-600"
+            disabled={submitting || !password.trim()}
+            className="w-full rounded-2xl bg-orange-500 py-4 text-base font-bold text-black shadow-[0_0_30px_rgba(255,122,0,0.3)] transition-all hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Access Dashboard
+            {submitting ? 'Verifying...' : 'Access Dashboard'}
           </motion.button>
         </form>
       </motion.div>
