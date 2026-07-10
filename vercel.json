@@ -1,9 +1,12 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
-      "destination": "/welcome.html"
-    },
+      "destination": "/welcome.html",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     {
       "source": "/((?!api/)(?!.*\\..*).*)",
       "destination": "/index.html"
