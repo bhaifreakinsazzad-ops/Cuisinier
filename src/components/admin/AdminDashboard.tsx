@@ -45,7 +45,7 @@ function getWhatsappMessage(order: Order) {
     .map((item) => {
       const addons = item.addons.length > 0 ? ` (${item.addons.map((addon) => addon.name).join(', ')})` : '';
       const note = item.note ? ` [Note: ${item.note}]` : '';
-      return `- ${item.name} x ${item.quantity}${addons} ? ${formatCurrency(item.lineTotal)}${note}`;
+      return `- ${item.name} x ${item.quantity}${addons} — ${formatCurrency(item.lineTotal)}${note}`;
     })
     .join('\n');
 
@@ -146,11 +146,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     window.open(buildWhatsAppLink(settings?.whatsappNumber || BUSINESS_INFO.whatsappNumber, getWhatsappMessage(order)), '_blank', 'noopener,noreferrer');
   };
 
-  const today = useMemo(() => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    return date;
-  }, []);
+  // Deliberately not memoized: this dashboard stays mounted across a night
+  // shift, and a stale midnight boundary would silently misreport "Today's
+  // Orders" once the calendar day rolls over. Date construction is cheap.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const todayOrders = orders.filter((order) => new Date(order.createdAt) >= today);
   const pendingOrders = orders.filter((order) => !['delivered', 'cancelled'].includes(order.status));
@@ -306,7 +306,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               {STATUS_CONFIG[order.status].label}
                             </GlowBadge>
                           </div>
-                          <p className="mt-0.5 truncate text-xs text-white/40">{order.customerName} ? {order.area}</p>
+                          <p className="mt-0.5 truncate text-xs text-white/40">{order.customerName} — {order.area}</p>
                         </div>
                         <span className="ml-2 text-sm font-bold text-orange-400">{formatCurrency(order.total)}</span>
                       </div>
@@ -342,7 +342,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               {STATUS_CONFIG[order.status].label}
                             </GlowBadge>
                           </div>
-                          <p className="mt-1 text-sm text-white/60">{order.customerName} ? {order.phone}</p>
+                          <p className="mt-1 text-sm text-white/60">{order.customerName} — {order.phone}</p>
                           <p className="mt-0.5 text-xs text-white/40">{order.address}, {order.area}</p>
                           <div className="mt-2 flex flex-wrap gap-1">
                             {order.items.map((item, itemIndex) => (

@@ -57,6 +57,11 @@ export function CheckoutPage() {
   const isOnline = useOnlineStatus();
 
   const draft = useRef(loadDraft());
+  // clear() dispatches a synchronous cart-change event that can commit its own
+  // render before navigate() takes effect, hitting the cart.length===0 guard
+  // below and showing "cart is empty" instead of the order confirmation.
+  // Once an order is actually placed, never show that fallback again.
+  const hasSubmittedRef = useRef(false);
 
   const [name, setName] = useState(draft.current.name ?? '');
   const [phone, setPhone] = useState(draft.current.phone ?? '');
@@ -97,7 +102,7 @@ export function CheckoutPage() {
     }
   }, [paymentMethod]);
 
-  if (cart.length === 0) {
+  if (cart.length === 0 && !hasSubmittedRef.current) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-[#080808] px-5">
         <div className="text-center">
@@ -109,6 +114,14 @@ export function CheckoutPage() {
             Browse Menu
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (cart.length === 0 && hasSubmittedRef.current) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#080808] px-5">
+        <p className="text-sm text-white/50">Order placed — redirecting…</p>
       </div>
     );
   }
@@ -230,6 +243,7 @@ export function CheckoutPage() {
         content_ids: order.items.map((i) => i.menuItemId ?? i.name),
       });
 
+      hasSubmittedRef.current = true;
       clear();
       clearOrderNote();
       clearDraft();
