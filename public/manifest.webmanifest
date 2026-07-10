@@ -2,7 +2,7 @@
   "name": "Cuisinier",
   "short_name": "Cuisinier",
   "description": "AI-Powered Cloud Kitchen for Dhaka's late-night cravings",
-  "start_url": "/",
+  "start_url": "/home",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],

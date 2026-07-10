@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<script>
+  // Installed-PWA guard: if this is an already-installed app instance whose
+  // OS-cached shortcut still points at "/" (pre-dating this landing page),
+  // skip straight to the real app instead of showing the marketing page.
+  // Must run before paint — hence inline, first thing in <head>.
+  (function () {
+    var isStandalone =
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+    if (isStandalone) {
+      window.location.replace('/home');
+    }
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Cuisinier — Midnight AI Kitchen | Order Now</title>
 <meta name="description" content="Shawarma, burgers, pizza, pasta, combos, and drinks — delivered late-night in Dhaka and daytime in Dhanmondi. Guest checkout, no login, COD/bKash/Nagad. Powered by Whole 9 Yards of Holdings." />
