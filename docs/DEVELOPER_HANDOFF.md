@@ -135,6 +135,14 @@ Fallback mode:
 - `VITE_ADMIN_PASSWORD` is used only as a local dev fallback; must be blank in production
 - Rate limited: 5 attempts per IP per 15 minutes
 
+## Landing Page (root domain)
+
+- `cuisinier.online` (`/`) is redirected via `vercel.json` (a `redirects` entry, not `rewrites` — a rewrite silently loses to Vercel's static-file resolution since `dist/index.html` genuinely exists at that path) to `public/welcome.html`, a fully standalone static HTML file with no build step and no dependency on any `src/` code.
+- The React app itself is unaffected and still fully reachable — the existing `*` wildcard route in `App.tsx` renders `HomePage` at any unmatched path, so `/home` now serves exactly what `/` used to.
+- Installed PWA instances skip the landing page and launch straight into `/home`: `manifest.webmanifest`'s `start_url` is `/home`, and `welcome.html` has a pre-paint inline script that detects `display-mode: standalone` and redirects instantly, as a safety net for already-installed shortcuts whose OS-cached `start_url` may still be the old `/`.
+- Any component that hardcodes a list of "customer-facing" or "install-eligible" routes must include `/home` alongside `/` — `PWAInstallPrompt.tsx`'s `ELIGIBLE_ROUTES` and `ElevenLabsAgentWidget.tsx`'s `CUSTOMER_PATHS` both do this. If you add another such route allowlist, remember the same gap.
+- To update the landing page: edit `public/welcome.html` directly. It's a single self-contained file (inline CSS/JS) — changing it can never break ordering, checkout, or admin.
+
 ## PWA
 
 - Installable manifest is configured

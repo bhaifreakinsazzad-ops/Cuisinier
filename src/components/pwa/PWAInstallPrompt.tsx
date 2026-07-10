@@ -7,7 +7,10 @@ import { GlowBadge } from '@/components/ui/GlowBadge';
 import { analytics } from '@/lib/analytics';
 
 const DISMISS_KEY = 'cuisinier_install_prompt_dismissed';
-const ELIGIBLE_ROUTES = new Set(['/', '/menu', '/craving']);
+// "/home" is included alongside "/" because cuisinier.online now redirects
+// fresh visitors to a standalone landing page before they ever reach the
+// React app — "/home" is the actual first in-app route they land on.
+const ELIGIBLE_ROUTES = new Set(['/', '/home', '/menu', '/craving']);
 
 export function PWAInstallPrompt() {
   const location = useLocation();

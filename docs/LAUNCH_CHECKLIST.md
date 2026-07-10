@@ -64,6 +64,15 @@
 3. Select Monster Hunger + Group → confirm Combos/Pizza prioritized.
 4. Confirm Quick Add and Customize work from craving result cards.
 
+## Landing Page
+
+1. Confirm `cuisinier.online` redirects to the standalone landing page (`welcome.html`).
+2. Confirm all CTAs on the landing page ("Start Your Food Mission", "View Full Menu") correctly enter the app.
+3. Confirm `cuisinier.online/home` shows the actual app home screen (Start Food Mission hero).
+4. Confirm the PWA install prompt still appears on `/home` (not just `/`).
+5. Confirm the ElevenLabs voice widget still appears on `/home`.
+6. If you have an already-installed PWA icon from before the landing page existed, confirm it still opens directly into the app, not the landing page.
+
 ## PWA
 
 1. Test Android Chrome install over HTTPS.

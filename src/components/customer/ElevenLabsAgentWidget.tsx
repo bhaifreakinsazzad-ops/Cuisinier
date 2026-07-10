@@ -8,6 +8,9 @@ const WIDGET_AGENT_ID = 'agent_6801krp4gs21fm49n6jdxv19s0qb';
 
 const CUSTOMER_PATHS = new Set([
   '/',
+  // "/home" is the actual first in-app route for fresh visitors now that
+  // cuisinier.online redirects "/" to a standalone landing page first.
+  '/home',
   '/menu',
   '/cart',
   '/checkout',
