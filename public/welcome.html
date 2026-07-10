@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Cuisinier — Midnight AI Kitchen | Order Now</title>
+<meta name="description" content="Shawarma, burgers, pizza, pasta, combos, and drinks — delivered late-night in Dhaka and daytime in Dhanmondi. Guest checkout, no login, COD/bKash/Nagad. Powered by Whole 9 Yards of Holdings." />
+<meta property="og:title" content="Cuisinier — Midnight AI Kitchen" />
+<meta property="og:description" content="AI-Powered Cloud Kitchen. Late-Night in Dhaka. Daytime in Dhanmondi." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="/icons/icon-192.png" />
+<style>
+  :root {
+    --bg: #080808;
+    --bg-card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.10);
+    --orange: #ff7a00;
+    --orange-light: #ffb347;
+    --white: #ffffff;
+    --muted: rgba(255,255,255,0.55);
+    --muted-dim: rgba(255,255,255,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  ::selection { background: rgba(255,122,0,0.3); color: white; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- Ambient background ---------- */
+  #particles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .holo-grid-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,122,0,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,122,0,0.05) 1px, transparent 1px);
+    background-size: 34px 34px;
+    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black 0%, transparent 70%);
+    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black 0%, transparent 70%);
+  }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(8,8,8,0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand img { width: 34px; height: 34px; border-radius: 10px; }
+  .brand-name { font-weight: 800; font-size: 16px; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 10px; color: var(--muted-dim); letter-spacing: 0.04em; }
+  .nav-cta {
+    background: var(--orange);
+    color: #0a0a0a;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    box-shadow: 0 0 24px rgba(255,122,0,0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    white-space: nowrap;
+  }
+  .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 0 34px rgba(255,122,0,0.5); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    min-height: 92vh;
+    display: flex;
+    align-items: center;
+    padding: 80px 0 60px;
+    overflow: hidden;
+  }
+  .hero-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,122,0,0.20) 0%, transparent 62%);
+    pointer-events: none;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 50px;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+  @media (max-width: 880px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero { padding-top: 40px; min-height: auto; }
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255,122,0,0.3);
+    background: rgba(255,122,0,0.08);
+    color: var(--orange-light);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards;
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 999px; background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+    animation: pulse 1.6s infinite;
+  }
+
+  h1.headline {
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 800;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    margin-top: 18px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.1s forwards;
+  }
+  h1.headline .grad {
+    background: linear-gradient(90deg, #ff7a00, #ffd580, #ff7a00, #ffb347);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: holoFlow 5s linear infinite;
+  }
+
+  .subhead {
+    margin-top: 20px;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 480px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+  }
+
+  .hero-ctas {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.3s forwards;
+  }
+  .btn-primary {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--orange);
+    color: #0a0a0a;
+    font-weight: 800;
+    font-size: 15px;
+    padding: 16px 26px;
+    border-radius: 16px;
+    box-shadow: 0 0 34px rgba(255,122,0,0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 45%, transparent 60%);
+    background-size: 250% 250%;
+    background-position: 150% 150%;
+    transition: background-position 0.7s ease;
+  }
+  .btn-primary:hover::before { background-position: -50% -50%; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 46px rgba(255,122,0,0.55); }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 16px 24px;
+    border-radius: 16px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+
+  .trust-row {
+    margin-top: 26px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.4s forwards;
+  }
+  .trust-chip {
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+
+  /* Hero visual: floating dish orbit */
+  .hero-visual {
+    position: relative;
+    height: 460px;
+    perspective: 1200px;
+  }
+  .orbit-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .orbit-ring {
+    position: absolute;
+    border-radius: 999px;
+    border: 1px solid rgba(255,122,0,0.18);
+  }
+  .ring-1 { width: 340px; height: 340px; animation: spin 22s linear infinite; }
+  .ring-2 { width: 420px; height: 420px; animation: spin 30s linear infinite reverse; }
+  .dish-card {
+    position: absolute;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+    transition: transform 0.15s ease-out;
+    will-change: transform;
+  }
+  .dish-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dc1 { width: 128px; height: 128px; top: 4%; right: 6%; animation: float1 6.5s ease-in-out infinite; }
+  .dc2 { width: 104px; height: 104px; top: 42%; right: 24%; animation: float2 5.4s ease-in-out infinite 0.4s; }
+  .dc3 { width: 92px; height: 92px; top: 8%; left: 8%; animation: float3 6s ease-in-out infinite 0.9s; }
+  .dc4 { width: 84px; height: 84px; bottom: 8%; left: 18%; animation: float1 5.8s ease-in-out infinite 1.3s; }
+  .dc5 { width: 96px; height: 96px; bottom: 4%; right: 12%; animation: float2 6.2s ease-in-out infinite 1.7s; }
+  .dish-badge {
+    position: absolute;
+    bottom: 6px; right: 6px;
+    width: 26px; height: 26px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  .core-badge {
+    position: relative;
+    width: 132px; height: 132px;
+    border-radius: 999px;
+    background: rgba(255,122,0,0.12);
+    border: 1px solid rgba(255,122,0,0.3);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 60px rgba(255,122,0,0.35);
+    animation: coreScale 2.4s ease-in-out infinite;
+  }
+  .core-badge span { font-size: 46px; }
+
+  /* ---------- Sections ---------- */
+  section { position: relative; z-index: 2; padding: 90px 0; }
+  .section-head { text-align: center; max-width: 620px; margin: 0 auto 46px; }
+  .section-eyebrow {
+    font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--orange-light);
+  }
+  .section-title { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; margin-top: 10px; letter-spacing: -0.01em; }
+  .section-sub { color: var(--muted); margin-top: 12px; font-size: 15px; line-height: 1.6; }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* Dish showcase */
+  .dish-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 780px) { .dish-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .dish-grid { grid-template-columns: 1fr; } }
+
+  .menu-card {
+    position: relative;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+    transform: perspective(900px) rotateX(0) rotateY(0);
+    transition: transform 0.2s ease-out, box-shadow 0.3s ease;
+  }
+  .menu-card:hover { box-shadow: 0 0 40px rgba(255,122,0,0.2); }
+  .menu-card .img-wrap { position: relative; height: 150px; }
+  .menu-card .img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .menu-card .emoji-badge {
+    position: absolute; bottom: 8px; right: 8px;
+    width: 30px; height: 30px; border-radius: 999px;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .menu-card .tag-badge {
+    position: absolute; top: 8px; left: 8px;
+    font-size: 10px; font-weight: 800;
+    background: rgba(255,122,0,0.85); color: #0a0a0a;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .menu-card .body { padding: 14px 16px 18px; }
+  .menu-card h3 { font-size: 14.5px; font-weight: 700; }
+  .menu-card p { font-size: 12px; color: var(--muted-dim); margin-top: 4px; line-height: 1.4; }
+  .menu-card .price { margin-top: 10px; font-weight: 800; color: var(--orange-light); font-size: 15px; }
+
+  /* How it works */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; position: relative; }
+  @media (max-width: 780px) { .steps { grid-template-columns: 1fr; } }
+  .step-card {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 26px 22px;
+    text-align: left;
+    position: relative;
+  }
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 12px;
+    background: rgba(255,122,0,0.15); color: var(--orange-light);
+    font-weight: 800; font-size: 15px;
+  }
+  .step-card h3 { margin-top: 16px; font-size: 16px; font-weight: 700; }
+  .step-card p { margin-top: 8px; font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+
+  /* Feature grid */
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 780px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature-card {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 18px;
+    padding: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .feature-card:hover { transform: translateY(-3px); box-shadow: 0 0 30px rgba(255,122,0,0.14); border-color: rgba(255,122,0,0.3); }
+  .feature-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(255,122,0,0.14); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin-bottom: 12px;
+  }
+  .feature-card h3 { font-size: 14.5px; font-weight: 700; }
+  .feature-card p { font-size: 12.5px; color: var(--muted-dim); margin-top: 6px; line-height: 1.5; }
+
+  /* Stats */
+  .stats-band {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,122,0,0.05), transparent);
+  }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; text-align: center; }
+  @media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat-num { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; color: var(--orange-light); }
+  .stat-label { font-size: 12px; color: var(--muted-dim); margin-top: 6px; }
+
+  /* Final CTA */
+  .final-cta {
+    text-align: center;
+    border: 1px solid rgba(255,122,0,0.25);
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,122,0,0.14) 0%, transparent 70%), var(--bg-card);
+    border-radius: 28px;
+    padding: 60px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  .final-cta h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -0.01em; }
+  .final-cta p { color: var(--muted); margin-top: 12px; max-width: 460px; margin-left: auto; margin-right: auto; font-size: 14.5px; }
+  .final-cta .btn-primary { margin-top: 26px; font-size: 16px; padding: 18px 34px; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--border); padding: 50px 0 30px; position: relative; z-index: 2; }
+  .footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 30px; }
+  @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; gap: 26px; } }
+  .footer-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .footer-brand img { width: 30px; height: 30px; border-radius: 9px; }
+  footer h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-dim); margin-bottom: 12px; }
+  footer p, footer a { font-size: 13.5px; color: var(--muted); line-height: 2; display: block; }
+  footer a:hover { color: var(--orange-light); }
+  .footer-bottom {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .copyright { font-size: 12px; color: var(--muted-dim); }
+
+  .powered-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255,122,0,0.25);
+    background: rgba(255,122,0,0.06);
+    padding: 8px 14px 8px 8px;
+    border-radius: 999px;
+  }
+  .powered-badge .mono {
+    width: 26px; height: 26px; border-radius: 999px;
+    background: linear-gradient(135deg, #ff7a00, #ffb347);
+    color: #0a0a0a; font-weight: 900; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .powered-badge .text { font-size: 11px; color: var(--muted); line-height: 1.3; }
+  .powered-badge .text b { color: var(--white); font-weight: 800; letter-spacing: 0.01em; }
+
+  /* ---------- Keyframes ---------- */
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @keyframes holoFlow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes float1 { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-16px) rotate(3deg); } }
+  @keyframes float2 { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-12px) rotate(-4deg); } }
+  @keyframes float3 { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(5deg); } }
+  @keyframes coreScale { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="holo-grid-bg"></div>
+<canvas id="particles"></canvas>
+
+<nav>
+  <div class="nav-inner">
+    <div class="brand">
+      <img src="/icons/icon-192.png" alt="Cuisinier" />
+      <div>
+        <div class="brand-name">Cuisinier</div>
+        <div class="brand-sub">AI-POWERED CLOUD KITCHEN</div>
+      </div>
+    </div>
+    <a href="/craving" class="nav-cta">Order Now →</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><span class="pulse-dot"></span> Now delivering across Dhaka</span>
+        <h1 class="headline">Midnight cravings.<br /><span class="grad">AI-powered.</span><br />Delivered fast.</h1>
+        <p class="subhead">
+          Shawarma, burgers, pizza, pasta, combos, and drinks — with guest checkout,
+          manual payment support, and live tracking that feels like an app.
+          No login. No hassle. Just order.
+        </p>
+        <div class="hero-ctas">
+          <a href="/craving" class="btn-primary">
+            <span>⚡</span> Start Your Food Mission
+          </a>
+          <a href="/menu" class="btn-secondary">
+            <span>🍽️</span> View Full Menu
+          </a>
+        </div>
+        <div class="trust-row">
+          <span class="trust-chip">No login needed</span>
+          <span class="trust-chip">COD / bKash / Nagad</span>
+          <span class="trust-chip">Live order tracking</span>
+          <span class="trust-chip">Installable app</span>
+          <span class="trust-chip">Fixed ৳100 delivery</span>
+        </div>
+      </div>
+
+      <div class="hero-visual" id="heroVisual">
+        <div class="orbit-ring ring-1"></div>
+        <div class="orbit-ring ring-2"></div>
+        <div class="orbit-center">
+          <div class="core-badge"><span>🌙</span></div>
+        </div>
+        <div class="dish-card dc1"><img src="/food-burger.jpg" alt="Burger" loading="lazy" /><span class="dish-badge">🍔</span></div>
+        <div class="dish-card dc2"><img src="/food-pizza.jpg" alt="Pizza" loading="lazy" /><span class="dish-badge">🍕</span></div>
+        <div class="dish-card dc3"><img src="/food-shawarma.jpg" alt="Shawarma" loading="lazy" /><span class="dish-badge">🌯</span></div>
+        <div class="dish-card dc4"><img src="/food-pasta.jpg" alt="Pasta" loading="lazy" /><span class="dish-badge">🍝</span></div>
+        <div class="dish-card dc5"><img src="/food-fries.jpg" alt="Fries" loading="lazy" /><span class="dish-badge">🍟</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SIGNATURE DISHES ============ -->
+  <section class="wrap">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">Fan Favorites</div>
+      <h2 class="section-title">Signature Midnight Picks</h2>
+      <p class="section-sub">A taste of the full menu — 20 items across 7 categories, all cooked to order.</p>
+    </div>
+    <div class="dish-grid reveal">
+      <div class="menu-card">
+        <div class="img-wrap">
+          <img src="/food-shawarma.jpg" alt="Cheese Chicken Shawarma" loading="lazy" />
+          <span class="tag-badge">🌙 Midnight Pick</span>
+          <span class="emoji-badge">🌯</span>
+        </div>
+        <div class="body">
+          <h3>Cheese Chicken Shawarma</h3>
+          <p>Extra creamy, cheesy, hot and wrapped for midnight cravings.</p>
+          <div class="price">৳220</div>
+        </div>
+      </div>
+      <div class="menu-card">
+        <div class="img-wrap">
+          <img src="/food-burger.jpg" alt="Cheese Burger" loading="lazy" />
+          <span class="tag-badge">⭐ Featured</span>
+          <span class="emoji-badge">🍔</span>
+        </div>
+        <div class="body">
+          <h3>Cheese Burger</h3>
+          <p>Melty cheese, juicy chicken, creamy sauce, premium bite.</p>
+          <div class="price">৳300</div>
+        </div>
+      </div>
+      <div class="menu-card">
+        <div class="img-wrap">
+          <img src="/food-pizza.jpg" alt="BBQ Chicken Pizza" loading="lazy" />
+          <span class="tag-badge">⭐ Featured</span>
+          <span class="emoji-badge">🍕</span>
+        </div>
+        <div class="body">
+          <h3>BBQ Chicken Pizza</h3>
+          <p>Smoky BBQ chicken, cheese pull, premium flavor hit.</p>
+          <div class="price">৳620</div>
+        </div>
+      </div>
+      <div class="menu-card">
+        <div class="img-wrap">
+          <img src="/food-pasta.jpg" alt="Alfredo Pasta" loading="lazy" />
+          <span class="tag-badge">⭐ Featured</span>
+          <span class="emoji-badge">🍝</span>
+        </div>
+        <div class="body">
+          <h3>Alfredo Pasta</h3>
+          <p>Smooth Alfredo sauce, chicken, premium creamy finish.</p>
+          <div class="price">৳380</div>
+        </div>
+      </div>
+      <div class="menu-card">
+        <div class="img-wrap">
+          <img src="/food-fries.jpg" alt="Loaded Fries" loading="lazy" />
+          <span class="tag-badge">🌙 Midnight Pick</span>
+          <span class="emoji-badge">🍟</span>
+        </div>
+        <div class="body">
+          <h3>Loaded Fries</h3>
+          <p>Fries loaded with sauce, cheese, and flavor.</p>
+          <div class="price">৳280</div>
+        </div>
+      </div>
+      <div class="menu-card">
+        <div class="img-wrap">
+          <img src="/food-combo.jpg" alt="Monster Hunger Combo" loading="lazy" />
+          <span class="tag-badge">🌙 Midnight Pick</span>
+          <span class="emoji-badge">🌙</span>
+        </div>
+        <div class="body">
+          <h3>Monster Hunger Combo</h3>
+          <p>Heavy group combo for serious midnight hunger.</p>
+          <div class="price">৳1200</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="wrap">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">Simple By Design</div>
+      <h2 class="section-title">Three Steps To Delivery</h2>
+      <p class="section-sub">Built to convert fast — no accounts, no friction, no waiting on hold.</p>
+    </div>
+    <div class="steps reveal">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <h3>Choose Your Craving</h3>
+        <p>Let the AI craving selector match your mood, hunger level, and party size — or just browse the full menu directly.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <h3>Guest Checkout</h3>
+        <p>No account required. Pay Cash on Delivery, or send bKash / Nagad manually with instant confirmation.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <h3>Track Your Mission</h3>
+        <p>Watch your order move through kitchen, pickup, and delivery in real time — right from your browser.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="wrap">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">Why Cuisinier</div>
+      <h2 class="section-title">Built Like An App. Feels Like Magic.</h2>
+    </div>
+    <div class="feature-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon">🔓</div>
+        <h3>No Login Required</h3>
+        <p>Order as a guest, every time. Zero passwords, zero forms to remember.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💳</div>
+        <h3>Flexible Payments</h3>
+        <p>Cash on Delivery, bKash, or Nagad — pick whatever's easiest for you.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📍</div>
+        <h3>Live Status Timeline</h3>
+        <p>Real order tracking from placed to delivered — no guessing games.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📲</div>
+        <h3>Installable PWA</h3>
+        <p>Add Cuisinier to your home screen and order like a native app.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌙</div>
+        <h3>Midnight + Daytime</h3>
+        <p>Late-night kitchen across Dhaka, daytime service in Dhanmondi.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Real WhatsApp Support</h3>
+        <p>A human on the other end, one tap away, whenever you need help.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section class="stats-band">
+    <div class="wrap">
+      <div class="stats-grid reveal">
+        <div>
+          <div class="stat-num" data-count="20">0</div>
+          <div class="stat-label">Menu Items</div>
+        </div>
+        <div>
+          <div class="stat-num" data-count="7">0</div>
+          <div class="stat-label">Categories</div>
+        </div>
+        <div>
+          <div class="stat-num" data-prefix="৳" data-count="100">0</div>
+          <div class="stat-label">Fixed Delivery Fee</div>
+        </div>
+        <div>
+          <div class="stat-num" data-count="3">0</div>
+          <div class="stat-label">Payment Methods</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="wrap">
+    <div class="final-cta reveal">
+      <h2>Your midnight mission starts now.</h2>
+      <p>No login. No wait on hold. Just pick a craving and let Cuisinier handle the rest.</p>
+      <a href="/craving" class="btn-primary">⚡ Start Your Food Mission →</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <img src="/icons/icon-192.png" alt="Cuisinier" />
+          <div class="brand-name">Cuisinier</div>
+        </div>
+        <p style="max-width:280px;">AI-Powered Cloud Kitchen for Dhaka's late-night cravings. Late-Night in Dhaka, Daytime in Dhanmondi.</p>
+      </div>
+      <div>
+        <h4>Order</h4>
+        <a href="/craving">Choose My Craving</a>
+        <a href="/menu">Full Menu</a>
+        <a href="/track">Track My Order</a>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <a href="https://wa.me/8801778307704" target="_blank" rel="noopener noreferrer">WhatsApp Support</a>
+        <p>bKash: 01778307704</p>
+        <p>Nagad: +8801677975845</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span class="copyright">© <span id="year"></span> Cuisinier. All rights reserved.</span>
+      <div class="powered-badge">
+        <span class="mono">9</span>
+        <span class="text">Powered by<br /><b>Whole 9 Yards of Holdings</b></span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // ---------- Scroll reveal ----------
+  var revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach(function (el) { io.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+  }
+  // Safety net: never let content stay invisible if an observer never fires
+  // (e.g. very short pages, unusual viewport/zoom configurations).
+  setTimeout(function () {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+  }, 2500);
+
+  // ---------- Count-up stats ----------
+  var statEls = document.querySelectorAll('.stat-num');
+  function animateStat(el) {
+    if (el.dataset.animated === '1') return;
+    el.dataset.animated = '1';
+    var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+    var prefix = el.getAttribute('data-prefix') || '';
+    var duration = 1100;
+    var startTime = null;
+    function tick(ts) {
+      if (!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var value = Math.round(target * eased);
+      el.textContent = prefix + value;
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  if ('IntersectionObserver' in window) {
+    var statIo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        statIo.unobserve(entry.target);
+        animateStat(entry.target);
+      });
+    }, { threshold: 0.4 });
+    statEls.forEach(function (el) { statIo.observe(el); });
+  } else {
+    statEls.forEach(animateStat);
+  }
+  // Safety net, same reasoning as the reveal fallback above.
+  setTimeout(function () { statEls.forEach(animateStat); }, 2500);
+
+  // ---------- Hero pointer-tracked tilt ----------
+  var visual = document.getElementById('heroVisual');
+  var isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if (visual && !isCoarse) {
+    var cards = visual.querySelectorAll('.dish-card');
+    visual.addEventListener('pointermove', function (e) {
+      var rect = visual.getBoundingClientRect();
+      var px = (e.clientX - rect.left) / rect.width - 0.5;
+      var py = (e.clientY - rect.top) / rect.height - 0.5;
+      cards.forEach(function (card, i) {
+        var depth = 14 + i * 4;
+        card.style.transform = 'translate(' + (px * depth) + 'px,' + (py * depth) + 'px)';
+      });
+    });
+    visual.addEventListener('pointerleave', function () {
+      cards.forEach(function (card) { card.style.transform = 'translate(0,0)'; });
+    });
+  }
+
+  // ---------- Lightweight particle field ----------
+  var canvas = document.getElementById('particles');
+  if (canvas && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var ctx = canvas.getContext('2d');
+    var particles = [];
+    var count = window.innerWidth < 700 ? 22 : 42;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = Math.min(window.innerHeight * 1.4, 1400);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    for (var i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.6 + 0.5,
+        vy: -(Math.random() * 0.25 + 0.05),
+        alpha: Math.random() * 0.4 + 0.15
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(function (p) {
+        p.y += p.vy;
+        if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,140,40,' + p.alpha + ')';
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  // ---------- Footer year ----------
+  var yearEl = document.getElementById('year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+})();
+</script>
+
+</body>
+</html>
