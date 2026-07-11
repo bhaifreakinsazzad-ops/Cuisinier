@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Minus, Plus, ShoppingCart, X } from 'lucide-react';
 import { addToCart } from '@/data/storage';
 import { GlowBadge } from '@/components/ui/GlowBadge';
-import { CATEGORY_EMOJI } from '@/types';
+import { CATEGORY_EMOJI, resolveUnitPrice, resolveAddonPrice } from '@/types';
 import { analytics } from '@/lib/analytics';
 import { formatCurrency } from '@/lib/utils';
 import { triggerCartFx } from '@/lib/cartFx';
@@ -13,12 +13,6 @@ interface ItemDetailModalProps {
   item: MenuItem;
   onClose: () => void;
 }
-
-const ADDONS: CartAddon[] = [
-  { name: 'Extra Cheese', price: 50 },
-  { name: 'Extra Sauce', price: 30 },
-  { name: 'Extra Spicy', price: 20 },
-];
 
 function ModalImage({ item }: { item: MenuItem }) {
   const [failed, setFailed] = useState(false);
@@ -49,7 +43,9 @@ function ModalImage({ item }: { item: MenuItem }) {
 
 export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
-  const [selectedAddons, setSelectedAddons] = useState<CartAddon[]>([]);
+  const [selectedAddonNames, setSelectedAddonNames] = useState<Set<string>>(new Set());
+  const [selectedSize, setSelectedSize] = useState<string | undefined>(item.sizes?.[0]?.label);
+  const [selectedFlavor, setSelectedFlavor] = useState<string | undefined>(item.flavors?.[0]?.label);
   const [note, setNote] = useState('');
   const [added, setAdded] = useState(false);
 
@@ -66,16 +62,31 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id]);
 
-  const toggleAddon = (addon: CartAddon) => {
-    setSelectedAddons((current) =>
-      current.find((entry) => entry.name === addon.name)
-        ? current.filter((entry) => entry.name !== addon.name)
-        : [...current, addon],
-    );
+  const toggleAddon = (name: string) => {
+    setSelectedAddonNames((current) => {
+      const next = new Set(current);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
   };
 
+  // Recomputed from the current selectedSize every render — never a stale
+  // price if the customer changes size after toggling an add-on.
+  const selectedAddons: CartAddon[] = useMemo(
+    () =>
+      (item.addons ?? [])
+        .filter((addon) => selectedAddonNames.has(addon.name))
+        .map((addon) => ({ name: addon.name, price: resolveAddonPrice(addon, selectedSize) })),
+    [item.addons, selectedAddonNames, selectedSize],
+  );
+
+  const unitPrice = resolveUnitPrice(item, selectedSize);
   const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
-  const itemTotal = (item.price + addonsTotal) * quantity;
+  const itemTotal = (unitPrice + addonsTotal) * quantity;
 
   const handleAddToCart = (originEl: HTMLElement | null) => {
     if (!item.available) return;
@@ -85,6 +96,8 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
       quantity,
       addons: selectedAddons,
       note: note.trim(),
+      selectedSize,
+      selectedFlavor,
     });
     triggerCartFx(originEl, item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️');
     analytics.addToCart({
@@ -145,7 +158,9 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
                 <h2 className="text-xl font-bold text-white">{item.name}</h2>
                 <p className="mt-1 text-sm text-white/50">{item.description}</p>
               </div>
-              <span className="ml-4 text-2xl font-bold text-orange-400">{formatCurrency(item.price)}</span>
+              <span className="ml-4 text-2xl font-bold text-orange-400">
+                {item.sizes ? formatCurrency(unitPrice) : formatCurrency(item.price)}
+              </span>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -155,47 +170,109 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
               {!item.available && <GlowBadge variant="red">Temporarily unavailable</GlowBadge>}
             </div>
 
-            {/* Add-ons */}
-            <div className="mt-6">
-              <p className="mb-3 text-sm font-semibold text-white">Add-ons</p>
-              <div className="space-y-2">
-                {ADDONS.map((addon) => {
-                  const selected = selectedAddons.some((entry) => entry.name === addon.name);
-                  return (
-                    <motion.button
-                      key={addon.name}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => toggleAddon(addon)}
-                      disabled={!item.available}
-                      className={`flex w-full items-center justify-between rounded-xl border p-3 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                        selected
-                          ? 'border-orange-500/40 bg-orange-500/15 shadow-[0_0_16px_rgba(255,122,0,0.15)]'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={`flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${
-                            selected ? 'border-orange-500 bg-orange-500' : 'border-white/20 bg-transparent'
-                          }`}
-                        >
-                          {selected && <Check size={12} className="text-black" strokeWidth={3} />}
+            {/* Size selector */}
+            {item.sizes && (
+              <div className="mt-6">
+                <p className="mb-3 text-sm font-semibold text-white">Choose Size</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {item.sizes.map((size) => {
+                    const isSelected = selectedSize === size.label;
+                    return (
+                      <motion.button
+                        key={size.label}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedSize(size.label)}
+                        disabled={!item.available}
+                        className={`flex flex-col items-center gap-1 rounded-xl border p-3 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                          isSelected
+                            ? 'border-orange-500/50 bg-orange-500/15 shadow-[0_0_16px_rgba(255,122,0,0.15)]'
+                            : 'border-white/10 bg-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className={`text-sm font-bold ${isSelected ? 'text-orange-400' : 'text-white/80'}`}>
+                          {size.label}
                         </span>
-                        <span className={`text-sm ${selected ? 'text-orange-400' : 'text-white/80'}`}>{addon.name}</span>
-                      </span>
-                      <span className={`text-sm font-medium ${selected ? 'text-orange-400' : 'text-white/50'}`}>
-                        +{formatCurrency(addon.price)}
-                      </span>
-                    </motion.button>
-                  );
-                })}
+                        <span className={`text-xs ${isSelected ? 'text-orange-400/80' : 'text-white/40'}`}>
+                          {formatCurrency(size.price)}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
-              {selectedAddons.length > 0 && (
-                <p className="mt-2 text-xs text-orange-400/80">
-                  Add-ons: +{formatCurrency(addonsTotal)}
-                </p>
-              )}
-            </div>
+            )}
+
+            {/* Flavor selector */}
+            {item.flavors && (
+              <div className="mt-6">
+                <p className="mb-3 text-sm font-semibold text-white">Choose Flavor</p>
+                <div className="flex flex-wrap gap-2">
+                  {item.flavors.map((flavor) => {
+                    const isSelected = selectedFlavor === flavor.label;
+                    return (
+                      <motion.button
+                        key={flavor.label}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedFlavor(flavor.label)}
+                        disabled={!item.available}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                          isSelected
+                            ? 'border-orange-500/50 bg-orange-500/15 text-orange-400 shadow-[0_0_16px_rgba(255,122,0,0.15)]'
+                            : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+                        }`}
+                      >
+                        {flavor.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Add-ons (item-specific, size-scaled) */}
+            {item.addons && item.addons.length > 0 && (
+              <div className="mt-6">
+                <p className="mb-3 text-sm font-semibold text-white">Add-ons</p>
+                <div className="space-y-2">
+                  {item.addons.map((addon) => {
+                    const selected = selectedAddonNames.has(addon.name);
+                    const addonPrice = resolveAddonPrice(addon, selectedSize);
+                    return (
+                      <motion.button
+                        key={addon.name}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => toggleAddon(addon.name)}
+                        disabled={!item.available}
+                        className={`flex w-full items-center justify-between rounded-xl border p-3 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                          selected
+                            ? 'border-orange-500/40 bg-orange-500/15 shadow-[0_0_16px_rgba(255,122,0,0.15)]'
+                            : 'border-white/10 bg-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={`flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${
+                              selected ? 'border-orange-500 bg-orange-500' : 'border-white/20 bg-transparent'
+                            }`}
+                          >
+                            {selected && <Check size={12} className="text-black" strokeWidth={3} />}
+                          </span>
+                          <span className={`text-sm ${selected ? 'text-orange-400' : 'text-white/80'}`}>{addon.name}</span>
+                        </span>
+                        <span className={`text-sm font-medium ${selected ? 'text-orange-400' : 'text-white/50'}`}>
+                          +{formatCurrency(addonPrice)}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                {selectedAddons.length > 0 && (
+                  <p className="mt-2 text-xs text-orange-400/80">
+                    Add-ons: +{formatCurrency(addonsTotal)}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Note */}
             <div className="mt-4">

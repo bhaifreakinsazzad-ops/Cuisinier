@@ -6,6 +6,7 @@ import { clearOrderNote, getOrderNote, saveOrderNote } from '@/data/storage';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useCart } from '@/hooks/useCart';
 import { formatCurrency } from '@/lib/utils';
+import { resolveUnitPrice } from '@/types';
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -76,12 +77,13 @@ export function CartPage() {
         <div className="space-y-3">
           <AnimatePresence initial={false}>
             {cart.map((cartItem, index) => {
+              const unitPrice = resolveUnitPrice(cartItem.menuItem, cartItem.selectedSize);
               const addonsTotal = cartItem.addons.reduce((sum, addon) => sum + addon.price, 0);
-              const lineTotal = (cartItem.menuItem.price + addonsTotal) * cartItem.quantity;
-              // Stable identity matching storage.ts's addToCart merge rule (id + addons + note),
-              // not array index — so removing one item doesn't shift every other item's key
-              // and misdirect the exit animation onto the wrong card.
-              const stableKey = `${cartItem.menuItem.id}::${cartItem.addons.map((a) => a.name).sort().join(',')}::${cartItem.note}`;
+              const lineTotal = (unitPrice + addonsTotal) * cartItem.quantity;
+              // Stable identity matching storage.ts's addToCart merge rule (id + size +
+              // flavor + addons + note), not array index — so removing one item doesn't
+              // shift every other item's key and misdirect the exit animation.
+              const stableKey = `${cartItem.menuItem.id}::${cartItem.selectedSize ?? ''}::${cartItem.selectedFlavor ?? ''}::${cartItem.addons.map((a) => a.name).sort().join(',')}::${cartItem.note}`;
 
               return (
                 <motion.div
@@ -109,6 +111,11 @@ export function CartPage() {
                             <Trash2 size={14} />
                           </motion.button>
                         </div>
+                        {(cartItem.selectedSize || cartItem.selectedFlavor) && (
+                          <p className="mt-0.5 text-xs text-orange-400/80">
+                            {[cartItem.selectedSize, cartItem.selectedFlavor].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
                         {cartItem.addons.length > 0 && <p className="mt-0.5 text-xs text-white/40">+ {cartItem.addons.map((addon) => addon.name).join(', ')}</p>}
                         {cartItem.note && <p className="mt-0.5 text-[11px] italic text-white/30">&quot;{cartItem.note}&quot;</p>}
                         <div className="mt-2 flex items-center justify-between">

@@ -1,4 +1,5 @@
 import type { MenuItem, CartItem, Order, Settings, AdminSession } from '@/types';
+import { resolveUnitPrice } from '@/types';
 import { SEED_MENU_ITEMS, MENU_VERSION } from './seedMenu';
 import { BUSINESS_INFO } from '@/config/business';
 
@@ -52,12 +53,15 @@ function removeKey(key: string) {
 
 // --- Menu ---
 
-const VALID_CATEGORIES = new Set(['Shawarma', 'Burger', 'Pizza', 'Pasta', 'Fries & Snacks', 'Combos', 'Drinks']);
+const VALID_CATEGORIES = new Set([
+  'Classic Favorites', 'Chicken Fusion', 'Beef Bonanza', 'Drinks', 'Burgers',
+  'Wraps', 'Set Menu', 'Salads', 'Pasta', 'Fries & Sides', 'Chicken Wings',
+]);
 const VALID_TAGS = new Set(['Popular', 'Cheesy', 'Spicy', 'Midnight Pick', 'Best Value', 'Group Order', 'Heavy Meal', 'Quick Bite', 'Most Popular', 'Midnight Combo', 'Premium', 'Add-on']);
 
 function repairMenuItem(item: Partial<MenuItem>): MenuItem | null {
   if (!item.id || !item.name || typeof item.price !== 'number' || item.price <= 0) return null;
-  const category = VALID_CATEGORIES.has(item.category ?? '') ? (item.category as MenuItem['category']) : 'Burger';
+  const category = VALID_CATEGORIES.has(item.category ?? '') ? (item.category as MenuItem['category']) : 'Burgers';
   const tags = (item.tags ?? []).filter((t) => VALID_TAGS.has(t)) as MenuItem['tags'];
   return {
     id: item.id,
@@ -73,6 +77,11 @@ function repairMenuItem(item: Partial<MenuItem>): MenuItem | null {
     featured: item.featured ?? false,
     midnightPick: item.midnightPick ?? false,
     createdAt: item.createdAt ?? new Date().toISOString(),
+    // Carried through as-is (not deeply validated) so corrupted/legacy
+    // localStorage repairs don't silently strip size/flavor/add-on variants.
+    sizes: item.sizes,
+    flavors: item.flavors,
+    addons: item.addons,
   };
 }
 
@@ -171,6 +180,8 @@ export function addToCart(cartItem: CartItem) {
   const existingIdx = cart.findIndex(
     (c) =>
       c.menuItem.id === cartItem.menuItem.id &&
+      c.selectedSize === cartItem.selectedSize &&
+      c.selectedFlavor === cartItem.selectedFlavor &&
       JSON.stringify(c.addons.map((a) => a.name).sort()) ===
         JSON.stringify(cartItem.addons.map((a) => a.name).sort()) &&
       c.note === cartItem.note
@@ -348,8 +359,9 @@ export function getCartTotal(): { subtotal: number; deliveryFee: number; total: 
   const cart = getCart();
   const settings = getSettings();
   const subtotal = cart.reduce((sum, c) => {
+    const unitPrice = resolveUnitPrice(c.menuItem, c.selectedSize);
     const addonsTotal = c.addons.reduce((a, addon) => a + addon.price, 0);
-    return sum + (c.menuItem.price + addonsTotal) * c.quantity;
+    return sum + (unitPrice + addonsTotal) * c.quantity;
   }, 0);
   return {
     subtotal,

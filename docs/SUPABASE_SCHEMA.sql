@@ -32,9 +32,24 @@ create table if not exists public.menu_items (
   is_available  boolean default true,
   is_featured   boolean default false,
   is_midnight_pick boolean default false,
+  sizes         jsonb,
+  flavors       jsonb,
+  addons        jsonb,
+  visual_emoji  text,
   created_at    timestamptz default now(),
   updated_at    timestamptz default now()
 );
+
+-- Menu v3.0: size-variant pricing (e.g. 8"/10"/12" pizzas), flavor choices
+-- (e.g. wing sauce), size-scaled add-ons, and a distinctive per-item emoji
+-- (used in place of shared placeholder photos). Additive, nullable — a null
+-- value just means the item has a single flat price, no flavor choice, no
+-- add-ons, or falls back to the shared category emoji. Safe to re-run
+-- against a table created by an older version of this script.
+alter table public.menu_items add column if not exists sizes        jsonb;
+alter table public.menu_items add column if not exists flavors      jsonb;
+alter table public.menu_items add column if not exists addons       jsonb;
+alter table public.menu_items add column if not exists visual_emoji text;
 
 create table if not exists public.orders (
   id              uuid primary key default uuid_generate_v4(),
@@ -67,8 +82,14 @@ create table if not exists public.order_items (
   add_ons       jsonb,
   item_note     text,
   line_total    numeric not null,
+  selected_size   text,
+  selected_flavor text,
   created_at    timestamptz default now()
 );
+
+-- Menu v3.0: which size/flavor variant the customer picked, if any.
+alter table public.order_items add column if not exists selected_size   text;
+alter table public.order_items add column if not exists selected_flavor text;
 
 create table if not exists public.settings (
   id                  uuid primary key default uuid_generate_v4(),
@@ -199,7 +220,8 @@ begin
   insert into public.order_items (
     id, order_id, menu_item_id,
     name, price, quantity,
-    add_ons, item_note, line_total, created_at
+    add_ons, item_note, line_total,
+    selected_size, selected_flavor, created_at
   )
   select
     (item->>'id')::uuid,
@@ -215,6 +237,8 @@ begin
     item->'add_ons',
     item->>'item_note',
     (item->>'line_total')::numeric,
+    item->>'selected_size',
+    item->>'selected_flavor',
     coalesce((item->>'created_at')::timestamptz, now())
   from jsonb_array_elements(items_payload) as item;
 

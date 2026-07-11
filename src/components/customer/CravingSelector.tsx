@@ -69,15 +69,15 @@ export function CravingSelector() {
     };
 
     const hungerCategoryMap: Record<HungerLevel, string[]> = {
-      light: ['Shawarma', 'Fries & Snacks', 'Drinks'],
-      medium: ['Burger', 'Pasta', 'Shawarma'],
-      monster: ['Burger', 'Pizza', 'Combos'],
+      light: ['Wraps', 'Fries & Sides', 'Salads', 'Drinks'],
+      medium: ['Burgers', 'Pasta', 'Set Menu'],
+      monster: ['Classic Favorites', 'Chicken Fusion', 'Beef Bonanza'],
     };
 
     const peopleCategoryMap: Record<PeopleCount, string[]> = {
-      solo: ['Shawarma', 'Burger', 'Fries & Snacks', 'Combos'],
-      two: ['Burger', 'Pizza', 'Pasta', 'Combos'],
-      group: ['Pizza', 'Combos', 'Fries & Snacks', 'Drinks'],
+      solo: ['Burgers', 'Wraps', 'Fries & Sides', 'Chicken Wings'],
+      two: ['Pasta', 'Set Menu', 'Salads'],
+      group: ['Classic Favorites', 'Chicken Fusion', 'Beef Bonanza'],
     };
 
     const targetTags = moodTagMap[mood] ?? [];
@@ -117,7 +117,14 @@ export function CravingSelector() {
   };
 
   const handleQuickAdd = (item: MenuItem, originEl: HTMLElement | null) => {
-    addToCart({ menuItem: item, quantity: 1, addons: [], note: '' });
+    addToCart({
+      menuItem: item,
+      quantity: 1,
+      addons: [],
+      note: '',
+      selectedSize: item.sizes?.[0]?.label,
+      selectedFlavor: item.flavors?.[0]?.label,
+    });
     triggerCartFx(originEl, item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️');
     analytics.addToCart({
       currency: 'BDT',
@@ -352,7 +359,9 @@ export function CravingSelector() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-orange-400">{formatCurrency(item.price)}</p>
+                        <p className="text-sm font-bold text-orange-400">
+                          {item.sizes ? `From ${formatCurrency(item.price)}` : formatCurrency(item.price)}
+                        </p>
                       </div>
                     </div>
 

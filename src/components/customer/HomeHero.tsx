@@ -174,7 +174,7 @@ export function HomeHero() {
           transition={{ duration: 0.6, delay: 0.12 }}
           className="mt-4 max-w-md text-base leading-relaxed text-white/65"
         >
-          Shawarma, burgers, pizza, pasta, combos, and drinks with guest checkout, manual payment support, and
+          Pizza, burgers, wraps, pasta, set menus, and drinks with guest checkout, manual payment support, and
           timeline tracking that feels like an app.
         </motion.p>
 

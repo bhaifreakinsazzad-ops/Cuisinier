@@ -12,7 +12,10 @@ import { formatCurrency } from '@/lib/utils';
 import { triggerCartFx } from '@/lib/cartFx';
 import { ItemDetailModal } from './ItemDetailModal';
 
-const CATEGORIES: Category[] = ['All', 'Shawarma', 'Burger', 'Pizza', 'Pasta', 'Fries & Snacks', 'Combos', 'Drinks'];
+const CATEGORIES: Category[] = [
+  'All', 'Classic Favorites', 'Chicken Fusion', 'Beef Bonanza', 'Burgers',
+  'Wraps', 'Set Menu', 'Salads', 'Pasta', 'Fries & Sides', 'Chicken Wings', 'Drinks',
+];
 const TAGS: Tag[] = ['Popular', 'Most Popular', 'Cheesy', 'Spicy', 'Midnight Pick', 'Best Value', 'Group Order', 'Heavy Meal', 'Quick Bite'];
 
 function FoodCardImage({ item }: { item: MenuItem }) {
@@ -95,7 +98,16 @@ export function MenuGrid() {
   const handleQuickAdd = (item: MenuItem, originEl: HTMLElement | null) => {
     if (!item.available) return;
 
-    addToCart({ menuItem: item, quantity: 1, addons: [], note: '' });
+    // Items with sizes/flavors default to the first option — matches
+    // ItemDetailModal's default so a 1-tap add is never left ambiguous.
+    addToCart({
+      menuItem: item,
+      quantity: 1,
+      addons: [],
+      note: '',
+      selectedSize: item.sizes?.[0]?.label,
+      selectedFlavor: item.flavors?.[0]?.label,
+    });
     triggerCartFx(originEl, item.visualEmoji ?? CATEGORY_EMOJI[item.category] ?? '🍽️');
     analytics.addToCart({
       currency: 'BDT',
@@ -147,7 +159,7 @@ export function MenuGrid() {
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search burger, shawarma, pizza, cheesy…"
+            placeholder="Search burger, wings, pizza, cheesy…"
             className="h-12 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-12 text-sm text-white placeholder:text-white/30 transition-colors focus:border-orange-500/50 focus:outline-none"
           />
           <button
@@ -258,7 +270,9 @@ export function MenuGrid() {
                     <h3 className="text-sm font-semibold leading-tight text-white">{item.name}</h3>
                     <p className="mt-1 line-clamp-2 text-xs text-white/40">{item.description}</p>
                   </div>
-                  <span className="whitespace-nowrap text-sm font-bold text-orange-400">{formatCurrency(item.price)}</span>
+                  <span className="whitespace-nowrap text-sm font-bold text-orange-400">
+                    {item.sizes ? `From ${formatCurrency(item.price)}` : formatCurrency(item.price)}
+                  </span>
                 </div>
 
                 <div className="mt-2 flex flex-wrap gap-1">

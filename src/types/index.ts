@@ -4,13 +4,17 @@
 
 export type Category =
   | 'All'
-  | 'Shawarma'
-  | 'Burger'
-  | 'Pizza'
+  | 'Classic Favorites'
+  | 'Chicken Fusion'
+  | 'Beef Bonanza'
+  | 'Drinks'
+  | 'Burgers'
+  | 'Wraps'
+  | 'Set Menu'
+  | 'Salads'
   | 'Pasta'
-  | 'Fries & Snacks'
-  | 'Combos'
-  | 'Drinks';
+  | 'Fries & Sides'
+  | 'Chicken Wings';
 
 export type Tag =
   | 'Popular'
@@ -50,11 +54,34 @@ export type HungerLevel = 'light' | 'medium' | 'monster';
 
 export type PeopleCount = 'solo' | 'two' | 'group';
 
+/** A selectable size variant with its own price (e.g. pizza 8"/10"/12", drinks Small/Large). */
+export interface SizeOption {
+  label: string;
+  price: number;
+}
+
+/** A no-cost selectable variant (e.g. wing flavor). Does not affect price. */
+export interface FlavorOption {
+  label: string;
+}
+
+/**
+ * An item-specific add-on. Use `price` for a flat add-on price, or
+ * `priceBySize` to scale the add-on price by the item's selected size
+ * (e.g. "Add More Cheese" costs different amounts on an 8" vs 12" pizza).
+ */
+export interface AddonOption {
+  name: string;
+  price?: number;
+  priceBySize?: Record<string, number>;
+}
+
 export interface MenuItem {
   id: string;
   recordId?: string;
   name: string;
   description: string;
+  /** Base price. For items with `sizes`, this is the minimum (starting-from) price. */
   price: number;
   category: Category;
   tags: Tag[];
@@ -64,6 +91,12 @@ export interface MenuItem {
   featured: boolean;
   midnightPick: boolean;
   createdAt: string;
+  /** Present only for items sold in multiple sizes (pizzas, drinks). */
+  sizes?: SizeOption[];
+  /** Present only for items with a no-cost flavor choice (e.g. wings). */
+  flavors?: FlavorOption[];
+  /** Present only for items with their own optional add-ons (pizzas). */
+  addons?: AddonOption[];
 }
 
 export interface CartAddon {
@@ -76,16 +109,23 @@ export interface CartItem {
   quantity: number;
   addons: CartAddon[];
   note: string;
+  /** Selected size label, if `menuItem.sizes` is present. */
+  selectedSize?: string;
+  /** Selected flavor label, if `menuItem.flavors` is present. */
+  selectedFlavor?: string;
 }
 
 export interface OrderItem {
   menuItemId?: string;
+  /** Display name at order time — includes size/flavor suffix, e.g. "Veggies Pizza (10")". */
   name: string;
   quantity: number;
   price: number;
   addons: CartAddon[];
   note: string;
   lineTotal: number;
+  selectedSize?: string;
+  selectedFlavor?: string;
 }
 
 export interface Order {
@@ -131,14 +171,35 @@ export interface AppSettings {
   peopleCount: PeopleCount | null;
 }
 
+/** Resolve a menu item's actual unit price given an optional selected size. */
+export function resolveUnitPrice(menuItem: MenuItem, selectedSize?: string): number {
+  if (selectedSize && menuItem.sizes) {
+    const match = menuItem.sizes.find((size) => size.label === selectedSize);
+    if (match) return match.price;
+  }
+  return menuItem.price;
+}
+
+/** Resolve an add-on's actual price given an optional selected size. */
+export function resolveAddonPrice(addon: AddonOption, selectedSize?: string): number {
+  if (selectedSize && addon.priceBySize) {
+    return addon.priceBySize[selectedSize] ?? 0;
+  }
+  return addon.price ?? 0;
+}
+
 export const CATEGORY_EMOJI: Record<string, string> = {
-  Shawarma: '🌯',
-  Burger: '🍔',
-  Pizza: '🍕',
-  Pasta: '🍝',
-  'Fries & Snacks': '🍟',
-  Combos: '🌙',
+  'Classic Favorites': '🍕',
+  'Chicken Fusion': '🍗',
+  'Beef Bonanza': '🥩',
   Drinks: '🥤',
+  Burgers: '🍔',
+  Wraps: '🌯',
+  'Set Menu': '🍽️',
+  Salads: '🥗',
+  Pasta: '🍝',
+  'Fries & Sides': '🍟',
+  'Chicken Wings': '🍗',
 };
 
 export const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; aiCopy: string }> = {

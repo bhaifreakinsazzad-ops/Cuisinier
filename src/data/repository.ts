@@ -1,4 +1,4 @@
-import type { MenuItem, Order, OrderStatus, Settings } from '@/types';
+import type { AddonOption, FlavorOption, MenuItem, Order, OrderStatus, SizeOption, Settings } from '@/types';
 import {
   CUISINIER_DATA_EVENT,
   addMenuItem,
@@ -28,12 +28,20 @@ type MenuRow = {
   price: number;
   visual_type: string | null;
   image_url: string | null;
+  // Nullable — only present once the migration adding it has been run.
+  // Absent/null just falls back to the shared category emoji in the UI.
+  visual_emoji?: string | null;
   tags: string[] | null;
   is_available: boolean | null;
   is_featured: boolean | null;
   is_midnight_pick: boolean | null;
   created_at: string | null;
   updated_at: string | null;
+  // Nullable — only present once docs/SUPABASE_SCHEMA.sql's variant-columns
+  // migration has been run. Absent/null just means a flat-price item.
+  sizes?: SizeOption[] | null;
+  flavors?: FlavorOption[] | null;
+  addons?: AddonOption[] | null;
 };
 
 type OrderItemRow = {
@@ -47,6 +55,11 @@ type OrderItemRow = {
   item_note: string | null;
   line_total: number;
   created_at: string | null;
+  // Nullable — only present once docs/SUPABASE_SCHEMA.sql's variant-columns
+  // migration has been run. The size/flavor is also encoded into `name`
+  // regardless, so display never depends on these columns existing.
+  selected_size?: string | null;
+  selected_flavor?: string | null;
 };
 
 type OrderRow = {
@@ -156,10 +169,14 @@ function mapMenuRow(row: MenuRow): MenuItem {
     category: row.category as MenuItem['category'],
     tags: (row.tags ?? []) as MenuItem['tags'],
     image: row.image_url || '/food-burger.jpg',
+    visualEmoji: row.visual_emoji ?? undefined,
     available: row.is_available ?? true,
     featured: row.is_featured ?? false,
     midnightPick: row.is_midnight_pick ?? false,
     createdAt: row.created_at ?? new Date().toISOString(),
+    sizes: row.sizes ?? undefined,
+    flavors: row.flavors ?? undefined,
+    addons: row.addons ?? undefined,
   };
 }
 
@@ -173,12 +190,16 @@ function toMenuRow(item: MenuItem): MenuRow {
     price: normalized.price,
     visual_type: 'image',
     image_url: normalized.image,
+    visual_emoji: normalized.visualEmoji ?? null,
     tags: normalized.tags,
     is_available: normalized.available,
     is_featured: normalized.featured,
     is_midnight_pick: normalized.midnightPick,
     created_at: normalized.createdAt,
     updated_at: new Date().toISOString(),
+    sizes: normalized.sizes ?? null,
+    flavors: normalized.flavors ?? null,
+    addons: normalized.addons ?? null,
   };
 }
 
@@ -193,6 +214,8 @@ function mapOrderRow(row: OrderRow): Order {
       addons: item.add_ons ?? [],
       note: item.item_note ?? '',
       lineTotal: Number(item.line_total ?? 0),
+      selectedSize: item.selected_size ?? undefined,
+      selectedFlavor: item.selected_flavor ?? undefined,
     }));
 
   return {
@@ -248,6 +271,8 @@ function toOrderInsert(order: OrderDraft) {
       item_note: item.note || null,
       line_total: item.lineTotal,
       created_at: order.createdAt,
+      selected_size: item.selectedSize ?? null,
+      selected_flavor: item.selectedFlavor ?? null,
     })),
     statusLogRow: {
       id: generateUuid(),

@@ -10,7 +10,7 @@ import { useCart } from '@/hooks/useCart';
 import { useOnlineStatus } from '@/hooks/usePWAInstall';
 import { useSettings } from '@/hooks/useSettings';
 import { analytics } from '@/lib/analytics';
-import { AREA_OPTIONS } from '@/types';
+import { AREA_OPTIONS, resolveUnitPrice } from '@/types';
 import type { PaymentMethod } from '@/types';
 import { formatCurrency, isLikelyBangladeshMobile, sanitizeText, sanitizeTransactionId } from '@/lib/utils';
 
@@ -202,15 +202,22 @@ export function CheckoutPage() {
       const now = new Date().toISOString();
 
       const orderItems = cart.map((entry) => {
+        const unitPrice = resolveUnitPrice(entry.menuItem, entry.selectedSize);
         const addonsTotal = entry.addons.reduce((sum, addon) => sum + addon.price, 0);
+        // Size/flavor encoded directly into the persisted name so the
+        // selection survives round-tripping through Supabase/localStorage
+        // without requiring an order_items schema change.
+        const variantSuffix = [entry.selectedSize, entry.selectedFlavor].filter(Boolean).join(', ');
         return {
           menuItemId: entry.menuItem.id,
-          name: entry.menuItem.name,
+          name: variantSuffix ? `${entry.menuItem.name} (${variantSuffix})` : entry.menuItem.name,
           quantity: entry.quantity,
-          price: entry.menuItem.price,
+          price: unitPrice,
           addons: entry.addons,
           note: sanitizeText(entry.note),
-          lineTotal: (entry.menuItem.price + addonsTotal) * entry.quantity,
+          lineTotal: (unitPrice + addonsTotal) * entry.quantity,
+          selectedSize: entry.selectedSize,
+          selectedFlavor: entry.selectedFlavor,
         };
       });
 
@@ -307,8 +314,10 @@ export function CheckoutPage() {
 
             <div className="space-y-2">
               {cart.map((entry, index) => {
+                const unitPrice = resolveUnitPrice(entry.menuItem, entry.selectedSize);
                 const addonsTotal = entry.addons.reduce((sum, addon) => sum + addon.price, 0);
-                const lineTotal = (entry.menuItem.price + addonsTotal) * entry.quantity;
+                const lineTotal = (unitPrice + addonsTotal) * entry.quantity;
+                const variant = [entry.selectedSize, entry.selectedFlavor].filter(Boolean).join(' · ');
                 return (
                   <div key={`${entry.menuItem.id}-${index}`} className="text-sm">
                     <div className="flex justify-between gap-3">
@@ -317,6 +326,7 @@ export function CheckoutPage() {
                       </span>
                       <span className="text-white/85">{formatCurrency(lineTotal)}</span>
                     </div>
+                    {variant && <p className="text-xs text-orange-400/80">{variant}</p>}
                     {entry.addons.length > 0 && (
                       <p className="text-xs text-white/35">
                         Add-ons: {entry.addons.map((a) => a.name).join(', ')}

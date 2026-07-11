@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Pencil, Plus, Save, Trash2, X } from 'lucide-react';
-import type { Category, MenuItem, Tag } from '@/types';
+import type { Category, MenuItem, SizeOption, Tag } from '@/types';
 import { CATEGORY_EMOJI } from '@/types';
 import { menuRepository } from '@/data/repository';
+import { PIZZA_ADDONS } from '@/data/seedMenu';
 import { GlowBadge } from '@/components/ui/GlowBadge';
 import { formatCurrency } from '@/lib/utils';
 
@@ -11,7 +12,20 @@ const ALL_TAGS: Tag[] = [
   'Popular', 'Most Popular', 'Cheesy', 'Spicy', 'Midnight Pick', 'Best Value',
   'Group Order', 'Heavy Meal', 'Quick Bite', 'Midnight Combo', 'Premium', 'Add-on',
 ];
-const CATEGORY_OPTIONS: Category[] = ['Shawarma', 'Burger', 'Pizza', 'Pasta', 'Fries & Snacks', 'Combos', 'Drinks'];
+const CATEGORY_OPTIONS: Category[] = [
+  'Classic Favorites', 'Chicken Fusion', 'Beef Bonanza', 'Drinks', 'Burgers',
+  'Wraps', 'Set Menu', 'Salads', 'Pasta', 'Fries & Sides', 'Chicken Wings',
+];
+
+const DEFAULT_PIZZA_SIZES: SizeOption[] = [
+  { label: '8"', price: 0 },
+  { label: '10"', price: 0 },
+  { label: '12"', price: 0 },
+];
+const DEFAULT_DRINK_SIZES: SizeOption[] = [
+  { label: 'Small', price: 0 },
+  { label: 'Large', price: 0 },
+];
 
 interface MenuManagerProps {
   items: MenuItem[];
@@ -23,7 +37,7 @@ const emptyItem = (): MenuItem => ({
   name: '',
   description: '',
   price: 0,
-  category: 'Burger',
+  category: 'Burgers',
   tags: [],
   image: '/food-burger.jpg',
   visualEmoji: '',
@@ -53,17 +67,38 @@ export function MenuManager({ items, onUpdate }: MenuManagerProps) {
 
     if (!item.name.trim()) { setError('Item name is required.'); return; }
     if (!item.category) { setError('Category is required.'); return; }
-    if (!item.price || item.price <= 0) { setError('Price must be greater than 0.'); return; }
+
+    if (item.sizes) {
+      if (item.sizes.some((size) => !size.label.trim() || size.price <= 0)) {
+        setError('Every size needs a label and a price greater than 0.');
+        return;
+      }
+    } else if (!item.price || item.price <= 0) {
+      setError('Price must be greater than 0.');
+      return;
+    }
+
+    if (item.flavors && item.flavors.some((flavor) => !flavor.label.trim())) {
+      setError('Every flavor option needs a label.');
+      return;
+    }
 
     setSaving(true);
     setError('');
 
     try {
+      // For sized items, `price` is derived as the minimum size price so
+      // "From ৳X" displays and list sorting stay correct automatically.
+      const resolvedPrice = item.sizes?.length
+        ? Math.min(...item.sizes.map((size) => size.price))
+        : item.price;
+
       await menuRepository.upsert({
         ...item,
         id: item.id || crypto.randomUUID(),
         name: item.name.trim(),
         description: item.description.trim(),
+        price: resolvedPrice,
       });
       setEditing(null);
       setIsCreating(false);
@@ -139,15 +174,17 @@ export function MenuManager({ items, onUpdate }: MenuManagerProps) {
           {/* Price + Category */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs text-white/50">Price (৳) *</label>
+              <label className="mb-1 block text-xs text-white/50">Price (৳) {editing.sizes ? '' : '*'}</label>
               <input
                 type="number"
                 min={1}
-                value={editing.price || ''}
+                disabled={!!editing.sizes}
+                value={editing.sizes ? Math.min(...editing.sizes.map((s) => s.price)) || '' : editing.price || ''}
                 onChange={(event) => setEditing({ ...editing, price: Number.parseInt(event.target.value, 10) || 0 })}
-                className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:border-orange-500/50 focus:outline-none"
+                className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:border-orange-500/50 focus:outline-none disabled:opacity-50"
                 placeholder="0"
               />
+              {editing.sizes && <p className="mt-1 text-[11px] text-white/30">Set per-size below — this shows the lowest size price.</p>}
             </div>
             <div>
               <label className="mb-1 block text-xs text-white/50">Category *</label>
@@ -163,6 +200,129 @@ export function MenuManager({ items, onUpdate }: MenuManagerProps) {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Size variants (e.g. pizza 8"/10"/12", drinks Small/Large) */}
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+            <label className="flex cursor-pointer items-center justify-between">
+              <span className="text-xs font-medium text-white/70">Sold in multiple sizes</span>
+              <input
+                type="checkbox"
+                checked={!!editing.sizes}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    const isDrink = editing.category === 'Drinks';
+                    setEditing({
+                      ...editing,
+                      sizes: isDrink ? DEFAULT_DRINK_SIZES.map((s) => ({ ...s })) : DEFAULT_PIZZA_SIZES.map((s) => ({ ...s })),
+                      addons: isDrink ? editing.addons : PIZZA_ADDONS,
+                    });
+                  } else {
+                    setEditing({ ...editing, sizes: undefined, addons: undefined });
+                  }
+                }}
+                className="rounded accent-orange-500"
+              />
+            </label>
+            {editing.sizes && (
+              <div className="mt-3 space-y-2">
+                {editing.sizes.map((size, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={size.label}
+                      onChange={(event) => {
+                        const next = [...editing.sizes!];
+                        next[index] = { ...next[index], label: event.target.value };
+                        setEditing({ ...editing, sizes: next });
+                      }}
+                      className="h-9 w-20 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white focus:border-orange-500/50 focus:outline-none"
+                      placeholder='8"'
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      value={size.price || ''}
+                      onChange={(event) => {
+                        const next = [...editing.sizes!];
+                        next[index] = { ...next[index], price: Number.parseInt(event.target.value, 10) || 0 };
+                        setEditing({ ...editing, sizes: next });
+                      }}
+                      className="h-9 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white focus:border-orange-500/50 focus:outline-none"
+                      placeholder="Price"
+                    />
+                    <button
+                      onClick={() => setEditing({ ...editing, sizes: editing.sizes!.filter((_, i) => i !== index) })}
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-400/70 hover:bg-red-500/20"
+                      aria-label="Remove size"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditing({ ...editing, sizes: [...editing.sizes!, { label: '', price: 0 }] })}
+                  className="text-[11px] text-orange-400 hover:text-orange-300"
+                >
+                  + Add size
+                </button>
+                {editing.addons && editing.addons.length > 0 && (
+                  <p className="text-[11px] text-white/30">
+                    Standard add-ons applied: {editing.addons.map((a) => a.name).join(', ')}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Flavor options (e.g. wings BBQ/Naga/Crispy) */}
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+            <label className="flex cursor-pointer items-center justify-between">
+              <span className="text-xs font-medium text-white/70">Has flavor choice (no price change)</span>
+              <input
+                type="checkbox"
+                checked={!!editing.flavors}
+                onChange={(event) => {
+                  setEditing({
+                    ...editing,
+                    flavors: event.target.checked ? [{ label: '' }] : undefined,
+                  });
+                }}
+                className="rounded accent-orange-500"
+              />
+            </label>
+            {editing.flavors && (
+              <div className="mt-3 space-y-2">
+                {editing.flavors.map((flavor, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={flavor.label}
+                      onChange={(event) => {
+                        const next = [...editing.flavors!];
+                        next[index] = { label: event.target.value };
+                        setEditing({ ...editing, flavors: next });
+                      }}
+                      className="h-9 flex-1 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white focus:border-orange-500/50 focus:outline-none"
+                      placeholder="e.g. BBQ"
+                    />
+                    <button
+                      onClick={() => setEditing({ ...editing, flavors: editing.flavors!.filter((_, i) => i !== index) })}
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-400/70 hover:bg-red-500/20"
+                      aria-label="Remove flavor"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditing({ ...editing, flavors: [...editing.flavors!, { label: '' }] })}
+                  className="text-[11px] text-orange-400 hover:text-orange-300"
+                >
+                  + Add flavor
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Image + Emoji */}
@@ -322,7 +482,7 @@ export function MenuManager({ items, onUpdate }: MenuManagerProps) {
                 {item.midnightPick && <span className="text-[10px] text-red-400">🌙</span>}
               </div>
               <p className="text-xs text-white/40">
-                {item.category} · {formatCurrency(item.price)}
+                {item.category} · {item.sizes ? `From ${formatCurrency(item.price)}` : formatCurrency(item.price)}
               </p>
             </div>
 
