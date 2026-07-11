@@ -142,10 +142,35 @@ create trigger trg_settings_updated_at
   for each row execute function public.set_updated_at();
 
 -- ── Realtime ──────────────────────────────────────────────────────────────────
+-- ADD TABLE has no built-in "IF NOT EXISTS" guard on all Postgres versions, and
+-- the Supabase SQL editor runs a pasted script as one transaction — an error
+-- here rolls back every earlier statement in the same run (tables, columns,
+-- everything). Guard each one explicitly so re-running this script is safe.
 
-alter publication supabase_realtime add table public.orders;
-alter publication supabase_realtime add table public.order_items;
-alter publication supabase_realtime add table public.order_status_logs;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'orders'
+  ) then
+    alter publication supabase_realtime add table public.orders;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'order_items'
+  ) then
+    alter publication supabase_realtime add table public.order_items;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'order_status_logs'
+  ) then
+    alter publication supabase_realtime add table public.order_status_logs;
+  end if;
+end
+$$;
 
 -- ── Atomic order creation RPC ─────────────────────────────────────────────────
 -- This function runs inside a single transaction. If any insert fails, the
